@@ -57,10 +57,6 @@ const signupErrorMessage = document.getElementById('signupErrorMessage');
 const logoutBtn = document.getElementById('logoutBtn');
 const adminToggleBtn = document.getElementById('adminToggleBtn');
 const closeAdminBtn = document.getElementById('closeAdminBtn');
-const broadcastBtn = document.getElementById('broadcastBtn');
-const announcementInput = document.getElementById('announcementInput');
-const announcementBanner = document.getElementById('announcementBanner');
-const announcementText = document.getElementById('announcementText');
 const welcomeMessage = document.getElementById('welcomeMessage');
 const userDetails = document.getElementById('userDetails');
 const openSignupBtn = document.getElementById('openSignupBtn');
@@ -93,6 +89,31 @@ const studentAccountsList = document.getElementById('studentAccountsList');
 const studentDetailsOverlay = document.getElementById('studentDetailsOverlay');
 const closeStudentDetailsBtn = document.getElementById('closeStudentDetailsBtn');
 const backToStudentListBtn = document.getElementById('backToStudentListBtn');
+const body = document.body;
+
+// index of student being edited in stored accounts
+let editingStudentIndex = null;
+
+function lockBodyScroll() {
+    document.documentElement.classList.add('no-scroll');
+    body.classList.add('no-scroll');
+}
+
+function unlockBodyScroll() {
+    document.documentElement.classList.remove('no-scroll');
+    body.classList.remove('no-scroll');
+}
+
+function closeAllOverlays() {
+    adminPanel.classList.remove('active');
+    quickLinkEditor.classList.remove('active');
+    studentAccountsOverlay.classList.remove('active');
+    studentDetailsOverlay.classList.remove('active');
+    settingsScreen.classList.remove('active');
+    settingsScreen.style.display = 'none';
+    quickLinkFormContainer.style.display = 'none';
+    unlockBodyScroll();
+}
 
 let quickLinks = [];
 
@@ -103,6 +124,68 @@ let quickLinks = [];
 function getStoredAccounts() {
     const stored = window.localStorage.getItem(STORAGE_KEYS.accounts);
     return stored ? JSON.parse(stored) : [];
+}
+
+function populateDetailClassOptions(year) {
+    const classSelect = document.getElementById('detailClassSelect');
+    classSelect.innerHTML = '';
+    const classes = YEAR_CLASSES[year] || [];
+    classes.forEach(cl => {
+        const opt = document.createElement('option');
+        opt.value = cl;
+        opt.textContent = cl;
+        classSelect.appendChild(opt);
+    });
+}
+
+// Detail form handlers
+const studentEditForm = document.getElementById('studentEditForm');
+const detailYearSelect = document.getElementById('detailYearSelect');
+const detailClassSelect = document.getElementById('detailClassSelect');
+const deleteStudentBtn = document.getElementById('deleteStudentBtn');
+
+if (detailYearSelect) {
+    detailYearSelect.addEventListener('change', function() {
+        populateDetailClassOptions(this.value);
+    });
+}
+
+if (studentEditForm) {
+    studentEditForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const accounts = getStoredAccounts();
+        if (editingStudentIndex === null || !accounts[editingStudentIndex]) return;
+
+        const updated = {
+            firstName: capitalizeFirstLetter(document.getElementById('detailFirstNameInput').value.trim()),
+            lastName: capitalizeFirstLetter(document.getElementById('detailLastNameInput').value.trim()),
+            password: document.getElementById('detailPasswordInput').value,
+            yearGroup: document.getElementById('detailYearSelect').value,
+            className: document.getElementById('detailClassSelect').value,
+            role: 'student'
+        };
+
+        accounts[editingStudentIndex] = updated;
+        saveStoredAccounts(accounts);
+        showInfo('✅ Student updated successfully.');
+        studentDetailsOverlay.classList.remove('active');
+        renderStudentAccountsList();
+        studentAccountsOverlay.classList.add('active');
+    });
+}
+
+if (deleteStudentBtn) {
+    deleteStudentBtn.addEventListener('click', function() {
+        const accounts = getStoredAccounts();
+        if (editingStudentIndex === null || !accounts[editingStudentIndex]) return;
+        if (!confirm('Delete this student account? This cannot be undone.')) return;
+        accounts.splice(editingStudentIndex, 1);
+        saveStoredAccounts(accounts);
+        editingStudentIndex = null;
+        studentDetailsOverlay.classList.remove('active');
+        renderStudentAccountsList();
+        studentAccountsOverlay.classList.add('active');
+    });
 }
 
 function saveStoredAccounts(accounts) {
@@ -233,6 +316,7 @@ signupYear.addEventListener('change', function() {
 
 adminToggleBtn.addEventListener('click', function() {
     adminPanel.classList.add('active');
+    lockBodyScroll();
     closeAdminBtn.focus();
 });
 
@@ -242,12 +326,14 @@ logoutBtn.addEventListener('click', function() {
 
 closeAdminBtn.addEventListener('click', function() {
     adminPanel.classList.remove('active');
+    unlockBodyScroll();
     adminToggleBtn.focus();
 });
 
 adminPanel.addEventListener('click', function(e) {
     if (e.target === adminPanel) {
         adminPanel.classList.remove('active');
+        unlockBodyScroll();
         adminToggleBtn.focus();
     }
 });
@@ -358,9 +444,8 @@ function showPortal() {
 function showLogin() {
     portalScreen.classList.remove('active');
     signupScreen.classList.remove('active');
-    adminPanel.classList.remove('active');
-    quickLinkEditor.classList.remove('active');
-    quickLinkFormContainer.style.display = 'none';
+    closeAllOverlays();
+    unlockBodyScroll();
     quickLinksList.style.display = 'block';
 
     appState.isLoggedIn = false;
@@ -368,7 +453,6 @@ function showLogin() {
     appState.isAdmin = false;
 
     clearSession();
-    announcementBanner.style.display = 'none';
     loginScreen.classList.add('active');
     document.getElementById('firstName').focus();
 }
@@ -384,8 +468,8 @@ function closeSignup() {
 function showSignup() {
     loginScreen.classList.remove('active');
     portalScreen.classList.remove('active');
-    adminPanel.classList.remove('active');
-    quickLinkEditor.classList.remove('active');
+    closeAllOverlays();
+    unlockBodyScroll();
 
     signupScreen.classList.add('active');
     hideSignupError();
@@ -473,12 +557,14 @@ quickLinkForm.addEventListener('submit', function(event) {
 
 function openQuickLinkEditor() {
     quickLinkEditor.classList.add('active');
+    lockBodyScroll();
     quickLinkFormContainer.style.display = 'none';
     renderQuickLinkMenu();
 }
 
 function closeQuickLinkEditor() {
     quickLinkEditor.classList.remove('active');
+    unlockBodyScroll();
     appState.editingLinkId = null;
     quickLinkFormContainer.style.display = 'none';
 }
@@ -614,6 +700,7 @@ function showSettings() {
     portalScreen.style.display = 'none';
     settingsScreen.classList.add('active');
     settingsScreen.style.display = 'flex';
+    lockBodyScroll();
 }
 
 function hideSettings() {
@@ -622,6 +709,7 @@ function hideSettings() {
     portalScreen.style.display = 'block';
     usernameInput.value = '';
     profilePictureUpload.value = '';
+    unlockBodyScroll();
 }
 
 // ===================================
@@ -631,15 +719,18 @@ function hideSettings() {
 viewStudentAccountsBtn.addEventListener('click', function() {
     renderStudentAccountsList();
     studentAccountsOverlay.classList.add('active');
+    lockBodyScroll();
 });
 
 closeStudentAccountsBtn.addEventListener('click', function() {
     studentAccountsOverlay.classList.remove('active');
+    unlockBodyScroll();
 });
 
 studentAccountsOverlay.addEventListener('click', function(event) {
     if (event.target === studentAccountsOverlay) {
         studentAccountsOverlay.classList.remove('active');
+        unlockBodyScroll();
     }
 });
 
@@ -661,35 +752,44 @@ function renderStudentAccountsList() {
         studentAccountsList.innerHTML = '<p class="admin-note">No student accounts created yet.</p>';
         return;
     }
-    
     studentAccountsList.innerHTML = '<div class="student-accounts-table">' + 
-        accounts.map(account => {
+        accounts.map((account, i) => {
             return `<div class="student-account-item">
                 <div class="student-info">
                     <div class="student-name">${capitalizeFirstLetter(account.firstName)} ${capitalizeFirstLetter(account.lastName)}</div>
-                    <div class="student-meta">${account.year || 'N/A'} - ${account.class || 'N/A'}</div>
+                    <div class="student-meta">${account.yearGroup || 'N/A'} - ${account.className || 'N/A'}</div>
                 </div>
-                <button class="btn btn-admin-action view-student-btn" data-first="${account.firstName}" data-last="${account.lastName}" data-password="${account.password}" data-year="${account.year}" data-class="${account.class}">
-                    👁️ View
-                </button>
+                <button class="btn btn-admin-action view-student-btn" data-index="${i}">👁️ View</button>
             </div>`;
         }).join('') + '</div>';
-    
+
     document.querySelectorAll('.view-student-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const firstName = this.getAttribute('data-first');
-            const lastName = this.getAttribute('data-last');
-            const password = this.getAttribute('data-password');
-            const year = this.getAttribute('data-year');
-            const className = this.getAttribute('data-class');
-            
-            document.getElementById('studentDetailsTitle').textContent = `Student: ${capitalizeFirstLetter(firstName)} ${capitalizeFirstLetter(lastName)}`;
-            document.getElementById('detailFirstName').textContent = capitalizeFirstLetter(firstName);
-            document.getElementById('detailLastName').textContent = capitalizeFirstLetter(lastName);
-            document.getElementById('detailPassword').textContent = password;
-            document.getElementById('detailYearGroup').textContent = year || 'N/A';
-            document.getElementById('detailClass').textContent = className || 'N/A';
-            
+            const idx = parseInt(this.getAttribute('data-index'), 10);
+            const account = getStoredAccounts()[idx];
+            if (!account) return;
+
+            editingStudentIndex = idx;
+
+            document.getElementById('studentDetailsTitle').textContent = `Student: ${capitalizeFirstLetter(account.firstName)} ${capitalizeFirstLetter(account.lastName)}`;
+            document.getElementById('detailFirstNameInput').value = account.firstName;
+            document.getElementById('detailLastNameInput').value = account.lastName;
+            document.getElementById('detailPasswordInput').value = account.password;
+
+            // populate year/class selects
+            const yearSelect = document.getElementById('detailYearSelect');
+            yearSelect.innerHTML = '';
+            Object.keys(YEAR_CLASSES).forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                yearSelect.appendChild(opt);
+            });
+            yearSelect.value = account.yearGroup || Object.keys(YEAR_CLASSES)[0];
+
+            populateDetailClassOptions(yearSelect.value);
+            document.getElementById('detailClassSelect').value = account.className || document.getElementById('detailClassSelect').value;
+
             studentAccountsOverlay.classList.remove('active');
             studentDetailsOverlay.classList.add('active');
         });

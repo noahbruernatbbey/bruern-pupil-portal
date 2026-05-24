@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal - Bruern Abbey School</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=OpenDyslexic&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <!-- LOGIN SCREEN -->
@@ -112,10 +109,7 @@
             </div>
         </header>
 
-        <!-- Announcement Banner (Hidden by default) -->
-        <div id="announcementBanner" class="announcement-banner" style="display: none;">
-            <span id="announcementText"></span>
-        </div>
+        <!-- Announcement Banner removed (managed externally if needed) -->
 
         <main class="portal-main">
             <section class="portal-section">
@@ -189,12 +183,7 @@
                     <p class="admin-note">Create or manage student accounts</p>
                 </div>
 
-                <div class="admin-section">
-                    <h3>📢 Broadcast Announcement</h3>
-                    <label for="announcementInput">Type your announcement:</label>
-                    <textarea id="announcementInput" class="admin-textarea" rows="4"></textarea>
-                    <button id="broadcastBtn" class="btn btn-admin-action">📣 Broadcast Announcement</button>
-                </div>
+                <!-- Broadcast Announcement removed per admin preference -->
             </div>
         </div>
     </div>
@@ -257,27 +246,33 @@
                 <button id="closeStudentDetailsBtn" class="btn btn-close">✖️ Close</button>
             </div>
             <div class="admin-content">
-                <div class="form-group">
-                    <label>First Name</label>
-                    <p id="detailFirstName" style="font-size: 1.2rem; padding: 12px; background: #f5f0e1; border-radius: 8px; margin-bottom: 12px;"></p>
-                </div>
-                <div class="form-group">
-                    <label>Last Name</label>
-                    <p id="detailLastName" style="font-size: 1.2rem; padding: 12px; background: #f5f0e1; border-radius: 8px; margin-bottom: 12px;"></p>
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <p id="detailPassword" style="font-size: 1.2rem; padding: 12px; background: #f5f0e1; border-radius: 8px; margin-bottom: 12px; font-family: monospace;"></p>
-                </div>
-                <div class="form-group">
-                    <label>Year Group</label>
-                    <p id="detailYearGroup" style="font-size: 1.2rem; padding: 12px; background: #f5f0e1; border-radius: 8px; margin-bottom: 12px;"></p>
-                </div>
-                <div class="form-group">
-                    <label>Class</label>
-                    <p id="detailClass" style="font-size: 1.2rem; padding: 12px; background: #f5f0e1; border-radius: 8px; margin-bottom: 12px;"></p>
-                </div>
-                <button id="backToStudentListBtn" class="btn btn-secondary btn-large">Back to Student List</button>
+                <form id="studentEditForm">
+                    <div class="form-group">
+                        <label for="detailFirstNameInput">First Name</label>
+                        <input id="detailFirstNameInput" type="text" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailLastNameInput">Last Name</label>
+                        <input id="detailLastNameInput" type="text" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailPasswordInput">Password</label>
+                        <input id="detailPasswordInput" type="text" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailYearSelect">Year Group</label>
+                        <select id="detailYearSelect" class="form-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailClassSelect">Class</label>
+                        <select id="detailClassSelect" class="form-input"></select>
+                    </div>
+                    <div style="display:flex; gap:12px; margin-top:12px;">
+                        <button id="saveStudentBtn" type="submit" class="btn btn-primary">Save Changes</button>
+                        <button id="deleteStudentBtn" type="button" class="btn btn-danger">Delete Student</button>
+                        <button id="backToStudentListBtn" type="button" class="btn btn-secondary">Back to List</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -304,6 +299,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="./script.js"></script>
 </body>
 </html>
