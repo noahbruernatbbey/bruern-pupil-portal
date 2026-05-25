@@ -1,13 +1,24 @@
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL);
+let sql;
+
+function getSql() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('Missing DATABASE_URL environment variable');
+  }
+  if (!sql) {
+    sql = neon(process.env.DATABASE_URL);
+  }
+  return sql;
+}
 
 export async function query(text, params) {
-  return await sql(text, params);
+  return await getSql()(text, params);
 }
 
 export async function ensureTables() {
-  await sql(`
+  const db = getSql();
+  await db(`
     CREATE TABLE IF NOT EXISTS students (
       id SERIAL PRIMARY KEY,
       first_name TEXT NOT NULL,
@@ -21,6 +32,6 @@ export async function ensureTables() {
     );
   `);
 
-  await sql(`ALTER TABLE students ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
-  await sql(`ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_picture TEXT;`);
+  await db(`ALTER TABLE students ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
+  await db(`ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_picture TEXT;`);
 }

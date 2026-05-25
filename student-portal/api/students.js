@@ -5,12 +5,16 @@ export const config = {
 };
 
 export default async function handler(request) {
-  if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+  try {
+    if (request.method !== 'GET') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    }
+
+    await ensureTables();
+
+    const result = await query('SELECT id, first_name, last_name, year_group, class_name, role, profile_picture FROM students ORDER BY created_at DESC');
+    return new Response(JSON.stringify(result), { status: 200 });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error?.message || 'Server error' }), { status: 500 });
   }
-
-  await ensureTables();
-
-  const result = await query('SELECT id, first_name, last_name, year_group, class_name, role, profile_picture FROM students ORDER BY created_at DESC');
-  return new Response(JSON.stringify(result), { status: 200 });
 }
