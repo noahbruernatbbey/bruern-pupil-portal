@@ -13,12 +13,12 @@ function getSql() {
 }
 
 export async function query(text, params) {
-  return await getSql()(text, params);
+  return await getSql().query(text, params);
 }
 
 export async function ensureTables() {
   const db = getSql();
-  await db(`
+  await db.query(`
     CREATE TABLE IF NOT EXISTS students (
       id SERIAL PRIMARY KEY,
       first_name TEXT NOT NULL,
@@ -32,6 +32,6 @@ export async function ensureTables() {
     );
   `);
 
-  await db(`ALTER TABLE students ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
-  await db(`ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_picture TEXT;`);
+  await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
+  await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_picture TEXT;`);
 }
