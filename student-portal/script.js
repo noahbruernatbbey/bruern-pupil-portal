@@ -134,16 +134,6 @@ function closeAllOverlays() {
     settingsScreen.style.display = 'none';
     quickLinkFormContainer.style.display = 'none';
     unlockBodyScroll();
-    // Safety fallback: if no main screen is visible after closing overlays,
-    // show the appropriate screen to avoid a blank page.
-    const anyMainActive = loginScreen.classList.contains('active') || portalScreen.classList.contains('active') || signupScreen.classList.contains('active');
-    if (!anyMainActive) {
-        if (appState.isLoggedIn) {
-            showPortal();
-        } else {
-            showLogin();
-        }
-    }
 }
 
 // ===================================
