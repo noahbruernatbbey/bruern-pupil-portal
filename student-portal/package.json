@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "echo \"Start the local development server with your Vercel CLI.\""
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0"
