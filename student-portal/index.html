@@ -192,15 +192,26 @@
                     <h3>📢 Broadcast Notice</h3>
                     <div class="form-group">
                         <label for="broadcastMessage">Broadcast Message</label>
-                        <textarea id="broadcastMessage" rows="4" placeholder="Write your announcement here..."></textarea>
+                        <textarea id="broadcastMessage" class="admin-textarea" rows="4" placeholder="Write your announcement here..."></textarea>
                     </div>
-                    <div class="form-group" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                        <div style="display:flex; gap:8px; align-items:center;">
+                    <div class="form-group broadcast-actions-row">
+                        <div class="broadcast-duration-buttons">
                             <button class="btn btn-admin-action" type="button" data-duration="60" id="broadcastDuration1">1 hour</button>
                             <button class="btn btn-admin-action" type="button" data-duration="1440" id="broadcastDuration24">1 day</button>
                             <button class="btn btn-admin-action" type="button" data-duration="10080" id="broadcastDuration7">7 days</button>
                         </div>
-                        <div style="margin-left:auto; display:flex; gap:8px;">
+                        <div class="duration-custom-group">
+                            <label for="broadcastCustomDuration">Custom duration</label>
+                            <div class="duration-input-group">
+                                <input type="number" id="broadcastCustomDuration" min="1" value="60" placeholder="Enter amount">
+                                <select id="broadcastCustomUnit">
+                                    <option value="minutes">minutes</option>
+                                    <option value="hours">hours</option>
+                                    <option value="days">days</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="broadcast-action-buttons">
                             <button id="postBroadcastBtn" class="btn btn-primary">Post</button>
                             <button id="clearBroadcastBtn" class="btn btn-secondary">Clear</button>
                         </div>

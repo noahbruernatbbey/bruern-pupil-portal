@@ -82,6 +82,8 @@ const clearBroadcastBtn = document.getElementById('clearBroadcastBtn');
 const broadcastDuration1 = document.getElementById('broadcastDuration1');
 const broadcastDuration24 = document.getElementById('broadcastDuration24');
 const broadcastDuration7 = document.getElementById('broadcastDuration7');
+const broadcastCustomDuration = document.getElementById('broadcastCustomDuration');
+const broadcastCustomUnit = document.getElementById('broadcastCustomUnit');
 const quickLinkFormContainer = document.getElementById('quickLinkFormContainer');
 const quickLinkFormTitle = document.getElementById('quickLinkFormTitle');
 const quickLinkForm = document.getElementById('quickLinkForm');
@@ -210,6 +212,36 @@ function setSelectedDuration(minutes) {
         if (!btn) return;
         btn.classList.toggle('active', parseInt(btn.dataset.duration, 10) === minutes);
     });
+
+    if (broadcastCustomDuration && broadcastCustomUnit) {
+        if (minutes === 60) {
+            broadcastCustomDuration.value = 60;
+            broadcastCustomUnit.value = 'minutes';
+        } else if (minutes === 1440) {
+            broadcastCustomDuration.value = 24;
+            broadcastCustomUnit.value = 'hours';
+        } else if (minutes === 10080) {
+            broadcastCustomDuration.value = 7;
+            broadcastCustomUnit.value = 'days';
+        }
+    }
+}
+
+function getBroadcastDurationMinutes() {
+    if (!broadcastCustomDuration || !broadcastCustomUnit) return selectedBroadcastDuration;
+    const amount = parseFloat(broadcastCustomDuration.value);
+    const unit = broadcastCustomUnit.value;
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return null;
+    }
+    switch (unit) {
+        case 'hours':
+            return Math.round(amount * 60);
+        case 'days':
+            return Math.round(amount * 1440);
+        default:
+            return Math.round(amount);
+    }
 }
 
 if (broadcastDuration1) broadcastDuration1.addEventListener('click', () => setSelectedDuration(60));
@@ -223,11 +255,18 @@ if (postBroadcastBtn) {
             showError('Please enter a broadcast message before posting.');
             return;
         }
-        postBroadcast(msg, selectedBroadcastDuration);
+        const durationMinutes = getBroadcastDurationMinutes();
+        if (!durationMinutes || durationMinutes <= 0) {
+            showError('Please enter a valid broadcast duration.');
+            return;
+        }
+        postBroadcast(msg, durationMinutes);
         if (broadcastMessage) broadcastMessage.value = '';
         showInfo('✅ Broadcast posted.');
     });
 }
+
+setSelectedDuration(selectedBroadcastDuration);
 
 if (clearBroadcastBtn) {
     clearBroadcastBtn.addEventListener('click', function() {
