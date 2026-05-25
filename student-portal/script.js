@@ -65,6 +65,14 @@ const backToLoginBtn = document.getElementById('backToLoginBtn');
 const closeSignupBtn = document.getElementById('closeSignupBtn');
 const signupYear = document.getElementById('signupYear');
 const signupClass = document.getElementById('signupClass');
+const studentCreateOverlay = document.getElementById('studentCreateOverlay');
+const closeStudentCreateBtn = document.getElementById('closeStudentCreateBtn');
+const studentCreateForm = document.getElementById('studentCreateForm');
+const studentCreateYear = document.getElementById('studentCreateYear');
+const studentCreateClass = document.getElementById('studentCreateClass');
+const studentCreateProfilePicture = document.getElementById('studentCreateProfilePicture');
+const studentCreateErrorMessage = document.getElementById('studentCreateErrorMessage');
+const studentCreateBackBtn = document.getElementById('studentCreateBackBtn');
 const quickLinksList = document.getElementById('quickLinksList');
 const quickLinkFormContainer = document.getElementById('quickLinkFormContainer');
 const quickLinkFormTitle = document.getElementById('quickLinkFormTitle');
@@ -89,10 +97,12 @@ const studentAccountsList = document.getElementById('studentAccountsList');
 const studentDetailsOverlay = document.getElementById('studentDetailsOverlay');
 const closeStudentDetailsBtn = document.getElementById('closeStudentDetailsBtn');
 const backToStudentListBtn = document.getElementById('backToStudentListBtn');
+const makeAdminBtn = document.getElementById('makeAdminBtn');
+const signupProfilePicture = document.getElementById('signupProfilePicture');
 const body = document.body;
 
-// index of student being edited in stored accounts
-let editingStudentIndex = null;
+let currentStudentAccounts = [];
+let editingStudentId = null;
 
 function lockBodyScroll() {
     document.documentElement.classList.add('no-scroll');
@@ -107,12 +117,23 @@ function unlockBodyScroll() {
 function closeAllOverlays() {
     adminPanel.classList.remove('active');
     quickLinkEditor.classList.remove('active');
+    studentCreateOverlay.classList.remove('active');
     studentAccountsOverlay.classList.remove('active');
     studentDetailsOverlay.classList.remove('active');
     settingsScreen.classList.remove('active');
     settingsScreen.style.display = 'none';
     quickLinkFormContainer.style.display = 'none';
     unlockBodyScroll();
+    // Safety fallback: if no main screen is visible after closing overlays,
+    // show the appropriate screen to avoid a blank page.
+    const anyMainActive = loginScreen.classList.contains('active') || portalScreen.classList.contains('active') || signupScreen.classList.contains('active');
+    if (!anyMainActive) {
+        if (appState.isLoggedIn) {
+            showPortal();
+        } else {
+            showLogin();
+        }
+    }
 }
 
 let quickLinks = [];
@@ -151,40 +172,48 @@ if (detailYearSelect) {
 }
 
 if (studentEditForm) {
-    studentEditForm.addEventListener('submit', function(e) {
+    studentEditForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        const accounts = getStoredAccounts();
-        if (editingStudentIndex === null || !accounts[editingStudentIndex]) return;
+        if (!editingStudentId) return;
 
-        const updated = {
+        const existingStudent = currentStudentAccounts?.find(s => s.id === editingStudentId) || {};
+        const updatedStudent = {
+            id: editingStudentId,
             firstName: capitalizeFirstLetter(document.getElementById('detailFirstNameInput').value.trim()),
             lastName: capitalizeFirstLetter(document.getElementById('detailLastNameInput').value.trim()),
-            password: document.getElementById('detailPasswordInput').value,
+            password: document.getElementById('detailPasswordInput').value || existingStudent.password || '',
             yearGroup: document.getElementById('detailYearSelect').value,
             className: document.getElementById('detailClassSelect').value,
-            role: 'student'
+            profilePicture: existingStudent.profile_picture || null
         };
 
-        accounts[editingStudentIndex] = updated;
-        saveStoredAccounts(accounts);
-        showInfo('✅ Student updated successfully.');
-        studentDetailsOverlay.classList.remove('active');
-        renderStudentAccountsList();
-        studentAccountsOverlay.classList.add('active');
+        try {
+            await apiUpdateStudent(updatedStudent);
+            showInfo('✅ Student updated successfully.');
+            studentDetailsOverlay.classList.remove('active');
+            await renderStudentAccountsList();
+            studentAccountsOverlay.classList.add('active');
+        } catch (error) {
+            showError(error.message || 'Unable to update student.');
+        }
     });
 }
 
 if (deleteStudentBtn) {
-    deleteStudentBtn.addEventListener('click', function() {
-        const accounts = getStoredAccounts();
-        if (editingStudentIndex === null || !accounts[editingStudentIndex]) return;
+    deleteStudentBtn.addEventListener('click', async function() {
+        if (!editingStudentId) return;
         if (!confirm('Delete this student account? This cannot be undone.')) return;
-        accounts.splice(editingStudentIndex, 1);
-        saveStoredAccounts(accounts);
-        editingStudentIndex = null;
-        studentDetailsOverlay.classList.remove('active');
-        renderStudentAccountsList();
-        studentAccountsOverlay.classList.add('active');
+
+        try {
+            await apiDeleteStudent(editingStudentId);
+            editingStudentId = null;
+            studentDetailsOverlay.classList.remove('active');
+            await renderStudentAccountsList();
+            studentAccountsOverlay.classList.add('active');
+            showInfo('✅ Student account deleted successfully.');
+        } catch (error) {
+            showError(error.message || 'Unable to delete student.');
+        }
     });
 }
 
@@ -240,6 +269,254 @@ function getAllAccounts() {
     return [ADMIN_ACCOUNT, ...getStoredAccounts()];
 }
 
+async function apiLogin(firstName, lastName, password) {
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firstName, lastName, password })
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data?.error || 'Login failed');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.warn('API login error:', error);
+        throw error;
+    }
+}
+
+async function apiSignup(account) {
+    try {
+        const response = await fetch('/api/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(account)
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data?.error || 'Signup failed');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.warn('API signup error:', error);
+        throw error;
+    }
+}
+
+async function apiFetchStudentAccounts() {
+    try {
+        const response = await fetch('/api/students');
+        if (!response.ok) {
+            throw new Error('Unable to fetch student accounts');
+        }
+        return await response.json();
+    } catch (error) {
+        console.warn('API student fetch error:', error);
+        return null;
+    }
+}
+
+async function apiPromoteStudent(id) {
+    try {
+        const response = await fetch('/api/promote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data?.error || 'Unable to promote student');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.warn('API promote error:', error);
+        throw error;
+    }
+}
+
+async function apiUpdateStudent(student) {
+    try {
+        const response = await fetch('/api/student', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(student)
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data?.error || 'Unable to update student');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.warn('API update student error:', error);
+        throw error;
+    }
+}
+
+async function apiDeleteStudent(id) {
+    try {
+        const response = await fetch('/api/student', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data?.error || 'Unable to delete student');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.warn('API delete student error:', error);
+        throw error;
+    }
+}
+
+function loginUser(user) {
+    appState.isLoggedIn = true;
+    appState.isAdmin = user.role === 'admin';
+    appState.currentUser = {
+        firstName: capitalizeFirstLetter(user.first_name || user.firstName),
+        lastName: capitalizeFirstLetter(user.last_name || user.lastName),
+        yearGroup: user.year_group || user.yearGroup,
+        className: user.class_name || user.className,
+        role: user.role || 'student',
+        profilePicture: user.profile_picture || null
+    };
+    saveSession();
+    showPortal();
+}
+
+async function getSignupProfilePictureData() {
+    return new Promise(resolve => {
+        const file = signupProfilePicture?.files?.[0];
+        if (!file) {
+            resolve(null);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = event => {
+            resolve(event.target.result);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function getStudentCreateProfilePictureData() {
+    return new Promise(resolve => {
+        const file = studentCreateProfilePicture?.files?.[0];
+        if (!file) {
+            resolve(null);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = event => {
+            resolve(event.target.result);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function refreshStudentAccountsList() {
+    const accounts = await apiFetchStudentAccounts();
+    if (!accounts) {
+        studentAccountsList.innerHTML = '<p class="admin-note">Unable to load student accounts.</p>';
+        return;
+    }
+    currentStudentAccounts = accounts;
+
+    if (accounts.length === 0) {
+        studentAccountsList.innerHTML = '<p class="admin-note">No student accounts created yet.</p>';
+        return;
+    }
+
+    studentAccountsList.innerHTML = '<div class="student-accounts-table">' + 
+        accounts.map((account, i) => {
+            return `<div class="student-account-item">
+                <div class="student-info">
+                    <div class="student-name">${capitalizeFirstLetter(account.first_name)} ${capitalizeFirstLetter(account.last_name)}</div>
+                    <div class="student-meta">${account.year_group || 'N/A'} - ${account.class_name || 'N/A'} • ${account.role === 'admin' ? 'Admin' : 'Student'}</div>
+                </div>
+                <div style="display:flex; gap:10px; width:100%; max-width:320px; justify-content:flex-end; flex-wrap:wrap;">
+                    <button class="btn btn-admin-action view-student-btn" data-index="${i}">👁️ View</button>
+                    ${account.role !== 'admin' ? `<button class="btn btn-admin" data-promote-id="${account.id}">Make Admin</button>` : '<span class="admin-badge" style="margin-left:8px;">Admin</span>'}
+                </div>
+            </div>`;
+        }).join('') + '</div>';
+
+    document.querySelectorAll('.view-student-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.getAttribute('data-index'), 10);
+            const account = currentStudentAccounts[idx];
+            if (!account) return;
+            openStudentDetails(account);
+        });
+    });
+
+    document.querySelectorAll('[data-promote-id]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = parseInt(this.getAttribute('data-promote-id'), 10);
+            try {
+                await apiPromoteStudent(id);
+                showInfo('✅ Student promoted to admin successfully.');
+                refreshStudentAccountsList();
+            } catch (error) {
+                showError(error.message || 'Unable to promote student.');
+            }
+        });
+    });
+}
+
+function openStudentDetails(account) {
+    editingStudentId = account.id;
+    document.getElementById('studentDetailsTitle').textContent = `Student: ${capitalizeFirstLetter(account.first_name)} ${capitalizeFirstLetter(account.last_name)}`;
+    document.getElementById('detailFirstNameInput').value = account.first_name;
+    document.getElementById('detailLastNameInput').value = account.last_name;
+    document.getElementById('detailPasswordInput').value = account.password || '';
+
+    const yearSelect = document.getElementById('detailYearSelect');
+    yearSelect.innerHTML = '';
+    Object.keys(YEAR_CLASSES).forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        yearSelect.appendChild(opt);
+    });
+    yearSelect.value = account.year_group || Object.keys(YEAR_CLASSES)[0];
+    populateDetailClassOptions(yearSelect.value);
+    document.getElementById('detailClassSelect').value = account.class_name || document.getElementById('detailClassSelect').value;
+
+    if (account.profile_picture) {
+        const preview = document.getElementById('detailProfilePicturePreview');
+        if (preview) {
+            preview.textContent = '';
+            const img = document.createElement('img');
+            img.src = account.profile_picture;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '50%';
+            preview.appendChild(img);
+        }
+    }
+
+    studentAccountsOverlay.classList.remove('active');
+    studentDetailsOverlay.classList.add('active');
+    lockBodyScroll();
+}
+
 function getProfileData(firstName, lastName) {
     const profiles = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.profiles) || '{}');
     const key = `${firstName.toLowerCase()}_${lastName.toLowerCase()}`;
@@ -267,31 +544,42 @@ loginForm.addEventListener('submit', function(event) {
     const firstName = document.getElementById('firstName').value.trim();
     const lastName = document.getElementById('lastName').value.trim();
     const password = document.getElementById('password').value;
-
-    const matchedAccount = getAllAccounts().find(account =>
-        account.firstName.toLowerCase() === firstName.toLowerCase() &&
-        account.lastName.toLowerCase() === lastName.toLowerCase() &&
-        account.password === password
-    );
-
-    if (matchedAccount) {
+    if (firstName.toLowerCase() === ADMIN_ACCOUNT.firstName && lastName.toLowerCase() === ADMIN_ACCOUNT.lastName && password === ADMIN_ACCOUNT.password) {
         appState.isLoggedIn = true;
-        appState.isAdmin = matchedAccount.role === 'admin';
+        appState.isAdmin = true;
         appState.currentUser = {
-            firstName: capitalizeFirstLetter(matchedAccount.firstName),
-            lastName: capitalizeFirstLetter(matchedAccount.lastName),
-            yearGroup: matchedAccount.yearGroup,
-            className: matchedAccount.className,
-            role: matchedAccount.role
+            firstName: capitalizeFirstLetter(ADMIN_ACCOUNT.firstName),
+            lastName: capitalizeFirstLetter(ADMIN_ACCOUNT.lastName),
+            yearGroup: ADMIN_ACCOUNT.yearGroup,
+            className: ADMIN_ACCOUNT.className,
+            role: 'admin'
         };
-
         hideError();
         loginForm.reset();
         saveSession();
         showPortal();
-    } else {
-        showError('❌ Incorrect credentials. Please try again or create an account.');
+        return;
     }
+
+    apiLogin(firstName, lastName, password)
+        .then(user => {
+            appState.isLoggedIn = true;
+            appState.isAdmin = false;
+            appState.currentUser = {
+                firstName: capitalizeFirstLetter(user.firstName),
+                lastName: capitalizeFirstLetter(user.lastName),
+                yearGroup: user.year_group,
+                className: user.class_name,
+                role: 'student'
+            };
+            hideError();
+            loginForm.reset();
+            saveSession();
+            showPortal();
+        })
+        .catch(() => {
+            showError('❌ Incorrect credentials. Please try again or create an account.');
+        });
 });
 
 // ===================================
@@ -305,13 +593,23 @@ openSignupBtn.addEventListener('click', function() {
 adminCreateAccountBtn.addEventListener('click', function() {
     appState.signupSource = 'admin';
     adminPanel.classList.remove('active');
-    showSignup();
+    showStudentCreateOverlay();
 });
 backToLoginBtn.addEventListener('click', showLogin);
 closeSignupBtn.addEventListener('click', closeSignup);
 
+closeStudentCreateBtn.addEventListener('click', closeStudentCreateOverlay);
+studentCreateBackBtn.addEventListener('click', function() {
+    closeStudentCreateOverlay();
+    adminPanel.classList.add('active');
+});
+
+studentCreateYear.addEventListener('change', function() {
+    populateClassOptions(studentCreateYear.value, studentCreateClass);
+});
+
 signupYear.addEventListener('change', function() {
-    populateClassOptions(signupYear.value);
+    populateClassOptions(signupYear.value, signupClass);
 });
 
 adminToggleBtn.addEventListener('click', function() {
@@ -338,7 +636,7 @@ adminPanel.addEventListener('click', function(e) {
     }
 });
 
-signupForm.addEventListener('submit', function(event) {
+signupForm.addEventListener('submit', async function(event) {
     event.preventDefault();
 
     const firstName = document.getElementById('signupFirstName').value.trim();
@@ -347,6 +645,7 @@ signupForm.addEventListener('submit', function(event) {
     const confirmPassword = document.getElementById('signupConfirmPassword').value;
     const yearGroup = signupYear.value;
     const className = signupClass.value;
+    const profilePicture = await getSignupProfilePictureData();
 
     if (!firstName || !lastName || !password || !confirmPassword || !yearGroup || !className) {
         showSignupError('Please fill in every field before creating an account.');
@@ -358,42 +657,78 @@ signupForm.addEventListener('submit', function(event) {
         return;
     }
 
-    const existing = getAllAccounts().some(account =>
-        account.firstName.toLowerCase() === firstName.toLowerCase() &&
-        account.lastName.toLowerCase() === lastName.toLowerCase()
-    );
-
-    if (existing) {
-        showSignupError('An account with that name already exists.');
-        return;
-    }
-
-    const accounts = getStoredAccounts();
-    accounts.push({
+    apiSignup({
         firstName: capitalizeFirstLetter(firstName),
         lastName: capitalizeFirstLetter(lastName),
         password,
         yearGroup,
         className,
-        role: 'student'
-    });
+        profilePicture
+    })
+        .then(user => {
+            signupForm.reset();
+            signupClass.innerHTML = '<option value="">Select class</option>';
+            signupProfilePicture.value = '';
+            hideSignupError();
 
-    saveStoredAccounts(accounts);
-    signupForm.reset();
-    signupClass.innerHTML = '<option value="">Select class</option>';
-    hideSignupError();
-
-    if (appState.signupSource === 'admin' && appState.isAdmin) {
-        showPortal();
-        showInfo('✅ Student account created successfully.');
-    } else {
-        showLogin();
-        showInfo('✅ Account created successfully. Please log in.');
-    }
+            if (appState.signupSource === 'admin' && appState.isAdmin) {
+                showPortal();
+                showInfo('✅ Student account created successfully.');
+            } else {
+                loginUser(user);
+                showInfo('✅ Account created successfully. You are now logged in.');
+            }
+        })
+        .catch(error => {
+            showSignupError(error.message || 'Unable to create account.');
+        });
 });
 
-function populateClassOptions(yearGroup) {
-    signupClass.innerHTML = '<option value="">Select class</option>';
+studentCreateForm.addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const firstName = document.getElementById('studentCreateFirstName').value.trim();
+    const lastName = document.getElementById('studentCreateLastName').value.trim();
+    const password = document.getElementById('studentCreatePassword').value;
+    const confirmPassword = document.getElementById('studentCreateConfirmPassword').value;
+    const yearGroup = studentCreateYear.value;
+    const className = studentCreateClass.value;
+    const profilePicture = await getStudentCreateProfilePictureData();
+
+    if (!firstName || !lastName || !password || !confirmPassword || !yearGroup || !className) {
+        showStudentCreateError('Please fill in every field before creating an account.');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showStudentCreateError('Passwords do not match. Please try again.');
+        return;
+    }
+
+    apiSignup({
+        firstName: capitalizeFirstLetter(firstName),
+        lastName: capitalizeFirstLetter(lastName),
+        password,
+        yearGroup,
+        className,
+        profilePicture
+    })
+        .then(() => {
+            studentCreateForm.reset();
+            studentCreateClass.innerHTML = '<option value="">Select class</option>';
+            studentCreateProfilePicture.value = '';
+            hideStudentCreateError();
+            closeStudentCreateOverlay();
+            adminPanel.classList.add('active');
+            showInfo('✅ Student account created successfully.');
+        })
+        .catch(error => {
+            showStudentCreateError(error.message || 'Unable to create student account.');
+        });
+});
+
+function populateClassOptions(yearGroup, targetSelect) {
+    targetSelect.innerHTML = '<option value="">Select class</option>';
 
     if (!YEAR_CLASSES[yearGroup]) {
         return;
@@ -403,8 +738,18 @@ function populateClassOptions(yearGroup) {
         const option = document.createElement('option');
         option.value = className;
         option.textContent = className;
-        signupClass.appendChild(option);
+        targetSelect.appendChild(option);
     });
+}
+
+function showStudentCreateError(message) {
+    studentCreateErrorMessage.textContent = message;
+    studentCreateErrorMessage.classList.add('show');
+}
+
+function hideStudentCreateError() {
+    studentCreateErrorMessage.textContent = '';
+    studentCreateErrorMessage.classList.remove('show');
 }
 
 function showSignupError(message) {
@@ -473,9 +818,44 @@ function showSignup() {
 
     signupScreen.classList.add('active');
     hideSignupError();
+    signupForm.reset();
     signupYear.value = '';
     signupClass.innerHTML = '<option value="">Select class</option>';
+    signupProfilePicture.value = '';
     document.getElementById('signupFirstName').focus();
+}
+
+function showStudentCreateOverlay() {
+    loginScreen.classList.remove('active');
+    portalScreen.classList.remove('active');
+    adminPanel.classList.remove('active');
+    closeAllOverlays();
+    unlockBodyScroll();
+
+    studentCreateOverlay.classList.add('active');
+    hideStudentCreateError();
+    studentCreateForm.reset();
+    studentCreateYear.value = '';
+    studentCreateClass.innerHTML = '<option value="">Select class</option>';
+    studentCreateProfilePicture.value = '';
+    document.getElementById('studentCreateFirstName').focus();
+}
+
+function closeStudentCreateOverlay() {
+    studentCreateOverlay.classList.remove('active');
+    unlockBodyScroll();
+    // If the admin opened this overlay, return them to the admin panel.
+    if (appState.signupSource === 'admin' && appState.isAdmin) {
+        adminPanel.classList.add('active');
+        lockBodyScroll();
+        closeAdminBtn.focus();
+    } else if (!appState.isLoggedIn) {
+        // If nobody is logged in, go back to the login screen to avoid a blank page
+        showLogin();
+    } else {
+        // Otherwise show the main portal
+        showPortal();
+    }
 }
 
 // ===================================
@@ -746,52 +1126,62 @@ backToStudentListBtn.addEventListener('click', function() {
     studentAccountsOverlay.classList.add('active');
 });
 
-function renderStudentAccountsList() {
-    const accounts = getStoredAccounts();
-    if (accounts.length === 0) {
+if (makeAdminBtn) {
+    makeAdminBtn.addEventListener('click', async function() {
+        if (!editingStudentId) return;
+        try {
+            await apiPromoteStudent(editingStudentId);
+            showInfo('✅ Student promoted to admin successfully.');
+            await renderStudentAccountsList();
+            studentDetailsOverlay.classList.remove('active');
+            studentAccountsOverlay.classList.add('active');
+        } catch (error) {
+            showError(error.message || 'Unable to promote student.');
+        }
+    });
+}
+
+async function renderStudentAccountsList() {
+    const accounts = await apiFetchStudentAccounts();
+    if (!accounts || accounts.length === 0) {
         studentAccountsList.innerHTML = '<p class="admin-note">No student accounts created yet.</p>';
         return;
     }
+
+    currentStudentAccounts = accounts;
     studentAccountsList.innerHTML = '<div class="student-accounts-table">' + 
         accounts.map((account, i) => {
             return `<div class="student-account-item">
                 <div class="student-info">
-                    <div class="student-name">${capitalizeFirstLetter(account.firstName)} ${capitalizeFirstLetter(account.lastName)}</div>
-                    <div class="student-meta">${account.yearGroup || 'N/A'} - ${account.className || 'N/A'}</div>
+                    <div class="student-name">${capitalizeFirstLetter(account.first_name)} ${capitalizeFirstLetter(account.last_name)}</div>
+                    <div class="student-meta">${account.year_group || 'N/A'} - ${account.class_name || 'N/A'} • ${account.role === 'admin' ? 'Admin' : 'Student'}</div>
                 </div>
-                <button class="btn btn-admin-action view-student-btn" data-index="${i}">👁️ View</button>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; width:100%; max-width:340px;">
+                    <button class="btn btn-admin-action view-student-btn" data-index="${i}">👁️ View</button>
+                    ${account.role !== 'admin' ? `<button class="btn btn-admin" data-promote-id="${account.id}">Make Admin</button>` : '<span class="admin-badge" style="margin-left:8px;">Admin</span>'}
+                </div>
             </div>`;
         }).join('') + '</div>';
 
     document.querySelectorAll('.view-student-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const idx = parseInt(this.getAttribute('data-index'), 10);
-            const account = getStoredAccounts()[idx];
+            const account = currentStudentAccounts[idx];
             if (!account) return;
+            openStudentDetails(account);
+        });
+    });
 
-            editingStudentIndex = idx;
-
-            document.getElementById('studentDetailsTitle').textContent = `Student: ${capitalizeFirstLetter(account.firstName)} ${capitalizeFirstLetter(account.lastName)}`;
-            document.getElementById('detailFirstNameInput').value = account.firstName;
-            document.getElementById('detailLastNameInput').value = account.lastName;
-            document.getElementById('detailPasswordInput').value = account.password;
-
-            // populate year/class selects
-            const yearSelect = document.getElementById('detailYearSelect');
-            yearSelect.innerHTML = '';
-            Object.keys(YEAR_CLASSES).forEach(y => {
-                const opt = document.createElement('option');
-                opt.value = y;
-                opt.textContent = y;
-                yearSelect.appendChild(opt);
-            });
-            yearSelect.value = account.yearGroup || Object.keys(YEAR_CLASSES)[0];
-
-            populateDetailClassOptions(yearSelect.value);
-            document.getElementById('detailClassSelect').value = account.className || document.getElementById('detailClassSelect').value;
-
-            studentAccountsOverlay.classList.remove('active');
-            studentDetailsOverlay.classList.add('active');
+    document.querySelectorAll('[data-promote-id]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = parseInt(this.getAttribute('data-promote-id'), 10);
+            try {
+                await apiPromoteStudent(id);
+                showInfo('✅ Student promoted to admin successfully.');
+                renderStudentAccountsList();
+            } catch (error) {
+                showError(error.message || 'Unable to promote student.');
+            }
         });
     });
 }
