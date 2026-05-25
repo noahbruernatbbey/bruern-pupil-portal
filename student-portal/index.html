@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal - Bruern Abbey School</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <h1 class="portal-title">🎓 Student Portal</h1>
+            <p class="welcome-text">Welcome to Bruern Abbey School</p>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" name="firstName" autocomplete="given-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" autocomplete="family-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+                
+                <div id="errorMessage" class="error-message" role="alert" aria-live="polite"></div>
+                
+                <button type="submit" class="btn btn-primary btn-large">
+                    🔓 Log In
+                </button>
+            </form>
+            <div class="signup-prompt">
+                <p>New here? <button id="openSignupBtn" class="btn btn-link" type="button">Create Account</button></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIGNUP SCREEN -->
+    <div id="signupScreen" class="screen">
+        <div class="login-container signup-container">
+            <button id="closeSignupBtn" class="signup-close-btn" type="button">✖️</button>
+            <h1 class="portal-title">Create Account</h1>
+            <form id="signupForm" class="login-form">
+                <div class="form-group">
+                    <label for="signupFirstName">First Name</label>
+                    <input type="text" id="signupFirstName" name="signupFirstName" autocomplete="given-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupLastName">Last Name</label>
+                    <input type="text" id="signupLastName" name="signupLastName" autocomplete="family-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" name="signupPassword" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupConfirmPassword">Confirm Password</label>
+                    <input type="password" id="signupConfirmPassword" name="signupConfirmPassword" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupYear">Year Group</label>
+                    <select id="signupYear" name="signupYear" required>
+                        <option value="">Select year</option>
+                        <option value="Year 8">Year 8</option>
+                        <option value="Year 7">Year 7</option>
+                        <option value="Year 6">Year 6</option>
+                        <option value="Year 5">Year 5</option>
+                        <option value="Year 4">Year 4</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="signupClass">Class</label>
+                    <select id="signupClass" name="signupClass" required>
+                        <option value="">Select class</option>
+                    </select>
+                </div>
+                <div id="signupErrorMessage" class="error-message" role="alert" aria-live="polite"></div>
+                <button type="submit" class="btn btn-primary btn-large">Create Account</button>
+                <button type="button" id="backToLoginBtn" class="btn btn-secondary btn-large">Back to Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- STUDENT PORTAL MAIN SCREEN -->
+    <div id="portalScreen" class="screen">
+        <header class="portal-header">
+            <div class="header-content">
+                <div class="user-info">
+                    <h2 id="welcomeMessage">Welcome back, Noah Hill!</h2>
+                    <p id="userDetails">Class: Year 8 - U6 Balliol 🛡️ <span class="admin-badge">Admin Account</span></p>
+                </div>
+                <div class="header-actions">
+                    <button id="settingsBtn" class="btn btn-admin">
+                        ⚙️ Settings
+                    </button>
+                    <button id="adminToggleBtn" class="btn btn-admin" style="display: none;">
+                        ⚙️ Admin Panel
+                    </button>
+                    <button id="logoutBtn" class="btn btn-secondary">
+                        🔒 Log Out
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Announcement Banner removed (managed externally if needed) -->
+
+        <main class="portal-main">
+            <section class="portal-section">
+                <h3 class="section-title">📅 Daily Schedule & Essentials</h3>
+                <div id="quickActions" class="quick-actions"></div>
+            </section>
+
+            <section class="portal-section">
+                <h3 class="section-title">🎮 Learning Apps & Tools</h3>
+                <div class="apps-grid">
+                    <a href="https://login.renaissance.com/13d332eb-2da7-45a6-a9e8-6f399a4bbe03?state=16a0f363-820c-47c5-8f6d-6f3af5e8c423" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">📖</span>
+                        <span class="app-name">myON Reading</span>
+                    </a>
+                    <a href="https://typing.com" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">⌨️</span>
+                        <span class="app-name">Typing.com</span>
+                    </a>
+                    <a href="https://play.ttrockstars.com/" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">🎸</span>
+                        <span class="app-name">Times Tables Rock Stars</span>
+                    </a>
+                    <a href="https://nitrotype.com" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">🏎️</span>
+                        <span class="app-name">Nitro Type</span>
+                    </a>
+                    <a href="https://kahoot.it" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">🎯</span>
+                        <span class="app-name">Kahoot</span>
+                    </a>
+                    <a href="https://tassomai.com" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">🧠</span>
+                        <span class="app-name">Tassomai</span>
+                    </a>
+                    <a href="https://www.mymaths.co.uk/" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">🔢</span>
+                        <span class="app-name">MyMaths</span>
+                    </a>
+                    <a href="https://play.edshed.com/en-gb" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">✏️</span>
+                        <span class="app-name">Spelling Shed</span>
+                    </a>
+                    <a href="https://scratch.mit.edu/" target="_blank" rel="noopener noreferrer" class="app-tile">
+                        <span class="app-icon">💻</span>
+                        <span class="app-name">Scratch Coding</span>
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ADMIN DASHBOARD OVERLAY -->
+    <div id="adminPanel" class="admin-overlay">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2>⚙️ Admin Controls</h2>
+                <button id="closeAdminBtn" class="btn btn-close">✖️ Close</button>
+            </div>
+            
+            <div class="admin-content">
+                <div class="admin-section">
+                    <h3>🔗 Quick Links Management</h3>
+                    <button id="editQuickLinksBtn" class="btn btn-admin-action">Edit Quick Links</button>
+                    <p class="admin-note">Manage portal URLs and navigation links</p>
+                </div>
+
+                <div class="admin-section">
+                    <h3>👥 Student Accounts</h3>
+                    <button id="adminCreateAccountBtn" class="btn btn-admin-action">+ Create Student Account</button>
+                    <button id="viewStudentAccountsBtn" class="btn btn-admin-action">👁️ View Student Accounts</button>
+                    <p class="admin-note">Create or manage student accounts</p>
+                </div>
+
+                <!-- Broadcast Announcement removed per admin preference -->
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK LINK EDITOR OVERLAY -->
+    <div id="quickLinkEditor" class="admin-overlay">
+        <div class="admin-container quick-link-editor">
+            <div class="admin-header">
+                <h2>✏️ Edit Quick Links</h2>
+                <button id="closeQuickLinkEditorBtn" class="btn btn-close">✖️ Close</button>
+            </div>
+            <div class="admin-content">
+                <div class="quick-links-menu-header">
+                    <button id="addQuickLinkBtn" class="btn btn-admin-action">+ Add Quick Link</button>
+                    <p class="admin-note">Select a link to edit or create a new one.</p>
+                </div>
+                <div id="quickLinksList" class="quick-links-list"></div>
+                <div id="quickLinkFormContainer" class="editor-card" style="display: none;">
+                    <h3 id="quickLinkFormTitle">Edit Quick Link</h3>
+                    <form id="quickLinkForm" class="login-form">
+                        <div class="form-group">
+                            <label for="linkIcon">Icon / Emoji</label>
+                            <input type="text" id="linkIcon" name="linkIcon" placeholder="e.g. 📚" maxlength="2" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="linkName">Link Name</label>
+                            <input type="text" id="linkName" name="linkName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="linkUrl">URL</label>
+                            <input type="url" id="linkUrl" name="linkUrl" placeholder="https://example.com" required>
+                        </div>
+                        <div id="quickLinkFormError" class="error-message" role="alert" aria-live="polite"></div>
+                        <button type="submit" class="btn btn-admin-action">Save Link</button>
+                        <button type="button" id="cancelQuickLinkEditBtn" class="btn btn-secondary">Back to Menu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDENT ACCOUNTS LIST OVERLAY (Admin View) -->
+    <div id="studentAccountsOverlay" class="admin-overlay">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2>👥 Student Accounts</h2>
+                <button id="closeStudentAccountsBtn" class="btn btn-close">✖️ Close</button>
+            </div>
+            <div class="admin-content">
+                <div id="studentAccountsList" class="student-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDENT DETAILS VIEWER (Admin View) -->
+    <div id="studentDetailsOverlay" class="admin-overlay">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2 id="studentDetailsTitle">Student Details</h2>
+                <button id="closeStudentDetailsBtn" class="btn btn-close">✖️ Close</button>
+            </div>
+            <div class="admin-content">
+                <form id="studentEditForm">
+                    <div class="form-group">
+                        <label for="detailFirstNameInput">First Name</label>
+                        <input id="detailFirstNameInput" type="text" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailLastNameInput">Last Name</label>
+                        <input id="detailLastNameInput" type="text" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailPasswordInput">Password</label>
+                        <input id="detailPasswordInput" type="text" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailYearSelect">Year Group</label>
+                        <select id="detailYearSelect" class="form-input"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailClassSelect">Class</label>
+                        <select id="detailClassSelect" class="form-input"></select>
+                    </div>
+                    <div style="display:flex; gap:12px; margin-top:12px;">
+                        <button id="saveStudentBtn" type="submit" class="btn btn-primary">Save Changes</button>
+                        <button id="deleteStudentBtn" type="button" class="btn btn-danger">Delete Student</button>
+                        <button id="backToStudentListBtn" type="button" class="btn btn-secondary">Back to List</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER SETTINGS / PROFILE PAGE -->
+    <div id="settingsScreen" class="screen">
+        <div class="login-container">
+            <button id="closeSettingsBtn" class="signup-close-btn" type="button">✖️</button>
+            <h1 class="portal-title">⚙️ Settings</h1>
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h3>Profile Picture</h3>
+                    <div id="profilePicturePreview" class="profile-picture-preview">👤</div>
+                    <input type="file" id="profilePictureUpload" accept="image/*" style="margin: 12px 0;">
+                    <button id="clearProfilePictureBtn" class="btn btn-secondary" style="display: block; margin: 8px 0;">Clear Picture</button>
+                </div>
+                <div class="settings-section">
+                    <h3>Username</h3>
+                    <input type="text" id="usernameInput" placeholder="Enter your username" class="form-input" style="width: 100%; padding: 12px; border: 3px solid #BDC3C7; border-radius: 12px; font-size: 1.2rem; margin: 12px 0;">
+                    <button id="saveUsernameBtn" class="btn btn-primary" style="display: block; margin: 8px 0;">Save Username</button>
+                </div>
+                <button id="closeSettingsBottomBtn" class="btn btn-secondary btn-large">Close Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>
