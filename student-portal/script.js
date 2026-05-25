@@ -15,6 +15,7 @@ const appState = {
 const STORAGE_KEYS = {
     accounts: 'studentPortalAccounts',
     quickLinks: 'studentPortalQuickLinks',
+    broadcasts: 'studentPortalBroadcasts',
     session: 'studentPortalSession',
     profiles: 'studentPortalProfiles'
 };
@@ -74,6 +75,13 @@ const studentCreateProfilePicture = document.getElementById('studentCreateProfil
 const studentCreateErrorMessage = document.getElementById('studentCreateErrorMessage');
 const studentCreateBackBtn = document.getElementById('studentCreateBackBtn');
 const quickLinksList = document.getElementById('quickLinksList');
+const broadcastBanner = document.getElementById('broadcastBanner');
+const broadcastMessage = document.getElementById('broadcastMessage');
+const postBroadcastBtn = document.getElementById('postBroadcastBtn');
+const clearBroadcastBtn = document.getElementById('clearBroadcastBtn');
+const broadcastDuration1 = document.getElementById('broadcastDuration1');
+const broadcastDuration24 = document.getElementById('broadcastDuration24');
+const broadcastDuration7 = document.getElementById('broadcastDuration7');
 const quickLinkFormContainer = document.getElementById('quickLinkFormContainer');
 const quickLinkFormTitle = document.getElementById('quickLinkFormTitle');
 const quickLinkForm = document.getElementById('quickLinkForm');
@@ -135,6 +143,100 @@ function closeAllOverlays() {
         }
     }
 }
+
+// ===================================
+// BROADCASTS (admin)
+// ===================================
+
+function getSavedBroadcasts() {
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEYS.broadcasts);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveBroadcasts(list) {
+    window.localStorage.setItem(STORAGE_KEYS.broadcasts, JSON.stringify(list || []));
+}
+
+function clearExpiredBroadcasts() {
+    const now = Date.now();
+    const list = getSavedBroadcasts().filter(b => b.expiresAt && b.expiresAt > now);
+    saveBroadcasts(list);
+    return list;
+}
+
+function renderBroadcastBanner() {
+    if (!broadcastBanner) return;
+    const active = clearExpiredBroadcasts();
+    if (!active || active.length === 0) {
+        broadcastBanner.style.display = 'none';
+        broadcastBanner.innerHTML = '';
+        return;
+    }
+    // show the most recent broadcast
+    const latest = active.sort((a, b) => b.id - a.id)[0];
+    const expiresIn = Math.max(0, Math.round((latest.expiresAt - Date.now()) / 60000));
+    broadcastBanner.style.display = 'block';
+    broadcastBanner.innerHTML = `<div class="broadcast-text">${escapeHtml(latest.message)}</div><div style="font-size:0.9rem; margin-top:6px; color:var(--text-secondary);">Expires in ${expiresIn} minute(s)</div>`;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>\"]/g, function(s) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]); });
+}
+
+function postBroadcast(message, minutes) {
+    if (!message || !minutes) return false;
+    const expiresAt = Date.now() + (minutes * 60000);
+    const list = clearExpiredBroadcasts();
+    list.push({ id: Date.now(), message, expiresAt });
+    saveBroadcasts(list);
+    renderBroadcastBanner();
+    return true;
+}
+
+function clearBroadcasts() {
+    saveBroadcasts([]);
+    renderBroadcastBanner();
+}
+
+// Duration button selection
+let selectedBroadcastDuration = 60; // minutes default
+function setSelectedDuration(minutes) {
+    selectedBroadcastDuration = minutes;
+    [broadcastDuration1, broadcastDuration24, broadcastDuration7].forEach(btn => {
+        if (!btn) return;
+        btn.classList.toggle('active', parseInt(btn.dataset.duration, 10) === minutes);
+    });
+}
+
+if (broadcastDuration1) broadcastDuration1.addEventListener('click', () => setSelectedDuration(60));
+if (broadcastDuration24) broadcastDuration24.addEventListener('click', () => setSelectedDuration(1440));
+if (broadcastDuration7) broadcastDuration7.addEventListener('click', () => setSelectedDuration(10080));
+
+if (postBroadcastBtn) {
+    postBroadcastBtn.addEventListener('click', function() {
+        const msg = (broadcastMessage && broadcastMessage.value || '').trim();
+        if (!msg) {
+            showError('Please enter a broadcast message before posting.');
+            return;
+        }
+        postBroadcast(msg, selectedBroadcastDuration);
+        if (broadcastMessage) broadcastMessage.value = '';
+        showInfo('✅ Broadcast posted.');
+    });
+}
+
+if (clearBroadcastBtn) {
+    clearBroadcastBtn.addEventListener('click', function() {
+        if (!confirm('Clear all broadcasts?')) return;
+        clearBroadcasts();
+        showInfo('✅ Broadcasts cleared.');
+    });
+}
+
 
 let quickLinks = [];
 
@@ -863,6 +965,8 @@ function closeStudentCreateOverlay() {
 // ===================================
 
 function renderQuickLinks() {
+    // render any active broadcast above quick links
+    renderBroadcastBanner();
     quickActions.innerHTML = quickLinks.map(link => {
         return `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="action-card">
             <span class="card-icon">${link.icon}</span>
