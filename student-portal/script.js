@@ -410,6 +410,20 @@ function getAllAccounts() {
     return [ADMIN_ACCOUNT, ...getStoredAccounts()];
 }
 
+async function parseApiError(response, fallbackMessage) {
+    const text = await response.text();
+    if (!text) {
+        return fallbackMessage || response.statusText || 'Unknown error';
+    }
+
+    try {
+        const data = JSON.parse(text);
+        return data?.error || data?.message || text;
+    } catch {
+        return text;
+    }
+}
+
 async function apiLogin(firstName, lastName, password) {
     try {
         const response = await fetch('/api/login', {
@@ -419,8 +433,8 @@ async function apiLogin(firstName, lastName, password) {
         });
 
         if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Login failed');
+            const message = await parseApiError(response, 'Login failed');
+            throw new Error(message);
         }
 
         return await response.json();
@@ -439,8 +453,8 @@ async function apiSignup(account) {
         });
 
         if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Signup failed');
+            const message = await parseApiError(response, 'Signup failed');
+            throw new Error(message);
         }
 
         return await response.json();
