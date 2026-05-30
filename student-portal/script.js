@@ -11,6 +11,7 @@ const state = {
     token: null,
     user: null,
     profilePictureData: null,
+    studentProfilePictureData: null,
     students: [],
     editingStudent: null,
     announcementTimer: null,
@@ -22,11 +23,14 @@ const el = id => document.getElementById(id);
 const loginScreen = el('loginScreen');
 const portalScreen = el('portalScreen');
 const loginForm = el('loginForm');
+const showPasswordToggle = el('showPasswordToggle');
 const errorMessage = el('errorMessage');
 const welcomeMessage = el('welcomeMessage');
 const userDetails = el('userDetails');
 const displayUsername = el('displayUsername');
 const lockedNameText = el('lockedNameText');
+const dashboardClass = el('dashboardClass');
+const dashboardAnnouncement = el('dashboardAnnouncement');
 const profileAvatar = el('profileAvatar');
 const logoutBtn = el('logoutBtn');
 const adminToggleBtn = el('adminToggleBtn');
@@ -35,9 +39,13 @@ const closeAdminBtn = el('closeAdminBtn');
 const studentCreateForm = el('studentCreateForm');
 const studentFormTitle = el('studentFormTitle');
 const studentFormSubmitBtn = el('studentFormSubmitBtn');
+const resetStudentPasswordBtn = el('resetStudentPasswordBtn');
 const cancelStudentEditBtn = el('cancelStudentEditBtn');
 const studentYear = el('studentYear');
 const studentClass = el('studentClass');
+const studentProfilePicture = el('studentProfilePicture');
+const studentProfilePicturePreview = el('studentProfilePicturePreview');
+const clearStudentPictureBtn = el('clearStudentPictureBtn');
 const studentAccountsList = el('studentAccountsList');
 const refreshStudentsBtn = el('refreshStudentsBtn');
 const profileBtn = el('profileBtn');
@@ -55,6 +63,7 @@ const announcementText = el('announcementText');
 const announcementForm = el('announcementForm');
 const announcementMessage = el('announcementMessage');
 const clearAnnouncementBtn = el('clearAnnouncementBtn');
+const announcementHistoryList = el('announcementHistoryList');
 
 function titleCase(value) {
     return String(value || '').trim().replace(/\w\S*/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
@@ -142,6 +151,7 @@ function renderPortal() {
     userDetails.textContent = `${user.year_group || ''} ${user.class_name ? '- ' + user.class_name : ''}`;
     displayUsername.textContent = titleCase(username);
     lockedNameText.textContent = `Account name: ${fullName}`;
+    dashboardClass.textContent = `${user.year_group || 'No year'}${user.class_name ? ' - ' + user.class_name : ''}`;
     adminToggleBtn.style.display = user.role === 'admin' ? 'inline-block' : 'none';
     profileBtn.style.display = user.id === 'default-admin' ? 'none' : 'inline-block';
     renderAvatar(profileAvatar, user.profile_picture);
@@ -196,17 +206,39 @@ function renderAnnouncement(announcement) {
     if (!message) {
         announcementBanner.hidden = true;
         announcementText.textContent = '';
+        dashboardAnnouncement.textContent = 'No announcement right now.';
         if (announcementMessage) {
             announcementMessage.value = '';
         }
+        renderAnnouncementHistory(announcement?.history || []);
         return;
     }
 
     announcementText.textContent = message;
+    dashboardAnnouncement.textContent = message;
     announcementBanner.hidden = false;
     if (announcementMessage && state.user?.role === 'admin') {
         announcementMessage.value = message;
     }
+    renderAnnouncementHistory(announcement?.history || []);
+}
+
+function renderAnnouncementHistory(history) {
+    if (!announcementHistoryList) {
+        return;
+    }
+
+    if (!history.length) {
+        announcementHistoryList.innerHTML = '<p class="admin-note">No announcements posted yet.</p>';
+        return;
+    }
+
+    announcementHistoryList.innerHTML = history.map(item => `
+        <div class="history-item">
+            <p>${item.message}</p>
+            <span>${new Date(item.created_at).toLocaleString()}</span>
+        </div>
+    `).join('');
 }
 
 async function loadAnnouncement() {
@@ -254,13 +286,18 @@ function resetStudentForm() {
     el('studentPassword').placeholder = '';
     studentFormTitle.textContent = 'Create Student Account';
     studentFormSubmitBtn.textContent = 'Create account';
+    resetStudentPasswordBtn.hidden = true;
     cancelStudentEditBtn.hidden = true;
+    studentProfilePicture.value = '';
+    state.studentProfilePictureData = null;
+    renderAvatar(studentProfilePicturePreview, null);
 }
 
 function startStudentEdit(student) {
     state.editingStudent = student;
     studentFormTitle.textContent = `Edit ${titleCase(student.first_name)} ${titleCase(student.last_name)}`;
     studentFormSubmitBtn.textContent = 'Save changes';
+    resetStudentPasswordBtn.hidden = false;
     cancelStudentEditBtn.hidden = false;
 
     el('studentFirstName').value = titleCase(student.first_name);
@@ -269,6 +306,9 @@ function startStudentEdit(student) {
     el('studentPassword').value = '';
     el('studentPassword').required = false;
     el('studentPassword').placeholder = 'Leave blank to keep current password';
+    state.studentProfilePictureData = student.profile_picture || null;
+    studentProfilePicture.value = '';
+    renderAvatar(studentProfilePicturePreview, state.studentProfilePictureData);
 
     populateYearAndClass();
     studentYear.value = student.year_group || '';
@@ -305,6 +345,29 @@ async function fileToDataUrl(file) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+}
+
+async function resizeImageFile(file, maxSize = 360, quality = 0.82) {
+    if (!file) return null;
+
+    const original = await fileToDataUrl(file);
+    const image = new Image();
+    image.src = original;
+    await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+    });
+
+    const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
 }
 
 async function refreshStudents() {
@@ -360,6 +423,10 @@ loginForm.addEventListener('submit', async event => {
     }
 });
 
+showPasswordToggle.addEventListener('change', () => {
+    el('password').type = showPasswordToggle.checked ? 'text' : 'password';
+});
+
 logoutBtn.addEventListener('click', () => {
     clearSession();
     stopAnnouncementPolling();
@@ -398,11 +465,11 @@ announcementForm.addEventListener('submit', async event => {
 
 clearAnnouncementBtn.addEventListener('click', async () => {
     try {
-        await api('/api/announcement', {
+        const announcement = await api('/api/announcement', {
             method: 'DELETE',
             headers: authHeaders()
         });
-        renderAnnouncement({ message: null });
+        renderAnnouncement(announcement);
         showMessage('Announcement cleared.');
     } catch (error) {
         showMessage(error.message, true);
@@ -424,6 +491,10 @@ studentCreateForm.addEventListener('submit', async event => {
         yearGroup: studentYear.value,
         className: studentClass.value
     };
+
+    if (state.studentProfilePictureData !== undefined) {
+        payload.profilePicture = state.studentProfilePictureData;
+    }
 
     if (editing) {
         payload.id = editing.id;
@@ -447,6 +518,35 @@ studentCreateForm.addEventListener('submit', async event => {
 });
 
 cancelStudentEditBtn.addEventListener('click', resetStudentForm);
+
+resetStudentPasswordBtn.addEventListener('click', () => {
+    if (!state.editingStudent) {
+        return;
+    }
+
+    const newPassword = prompt('Enter the new password for this student');
+    if (!newPassword) {
+        return;
+    }
+
+    el('studentPassword').value = newPassword;
+    showMessage('New password added. Press Save changes to update the account.');
+});
+
+studentProfilePicture.addEventListener('change', async event => {
+    try {
+        state.studentProfilePictureData = await resizeImageFile(event.target.files[0]);
+        renderAvatar(studentProfilePicturePreview, state.studentProfilePictureData);
+    } catch {
+        showMessage('Unable to load that image.', true);
+    }
+});
+
+clearStudentPictureBtn.addEventListener('click', () => {
+    state.studentProfilePictureData = null;
+    studentProfilePicture.value = '';
+    renderAvatar(studentProfilePicturePreview, null);
+});
 
 studentAccountsList.addEventListener('click', async event => {
     const editId = event.target.dataset.edit;
@@ -499,8 +599,12 @@ profileBtn.addEventListener('click', () => {
 closeProfileBtn.addEventListener('click', () => closePanel(profilePanel));
 
 profilePictureUpload.addEventListener('change', async event => {
-    state.profilePictureData = await fileToDataUrl(event.target.files[0]);
-    renderAvatar(profilePicturePreview, state.profilePictureData);
+    try {
+        state.profilePictureData = await resizeImageFile(event.target.files[0]);
+        renderAvatar(profilePicturePreview, state.profilePictureData);
+    } catch {
+        showMessage('Unable to load that image.', true);
+    }
 });
 
 clearProfilePictureBtn.addEventListener('click', () => {

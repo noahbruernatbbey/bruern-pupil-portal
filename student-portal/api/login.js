@@ -1,5 +1,5 @@
 import { ensureTables, query } from './db.js';
-import { createToken, isDefaultAdmin, json, passwordMatches } from './auth.js';
+import { createToken, isDefaultAdmin, json, jsonWithHeaders, passwordMatches, sessionCookie } from './auth.js';
 
 export const config = {
   runtime: 'edge'
@@ -29,7 +29,8 @@ export default async function handler(request) {
         role: 'admin',
         profile_picture: null
       };
-      return json({ user, token: await createToken(user) });
+      const token = await createToken(user);
+      return jsonWithHeaders({ user, token }, 200, { 'Set-Cookie': sessionCookie(token) });
     }
 
     await ensureTables();
@@ -44,7 +45,8 @@ export default async function handler(request) {
     }
 
     const { password: _password, ...user } = result[0];
-    return json({ user, token: await createToken(user) });
+    const token = await createToken(user);
+    return jsonWithHeaders({ user, token }, 200, { 'Set-Cookie': sessionCookie(token) });
   } catch (error) {
     return json({ error: error?.message || 'Server error' }, 500);
   }

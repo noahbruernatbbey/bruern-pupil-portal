@@ -44,4 +44,13 @@ export async function ensureTables() {
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
   `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS announcement_history (
+      id SERIAL PRIMARY KEY,
+      message TEXT NOT NULL,
+      created_by TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+  `);
 }

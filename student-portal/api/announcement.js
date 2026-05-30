@@ -10,8 +10,9 @@ export default async function handler(request) {
     await ensureTables();
 
     if (request.method === 'GET') {
-      const result = await query('SELECT message, updated_at FROM announcement WHERE id = 1 LIMIT 1');
-      return json(result[0] || { message: null });
+      const active = await query('SELECT message, updated_at FROM announcement WHERE id = 1 LIMIT 1');
+      const history = await query('SELECT id, message, created_by, created_at FROM announcement_history ORDER BY created_at DESC LIMIT 10');
+      return json({ ...(active[0] || { message: null }), history });
     }
 
     const admin = await requireAdmin(request);
@@ -35,13 +36,19 @@ export default async function handler(request) {
          RETURNING message, updated_at`,
         [message]
       );
+      await query(
+        'INSERT INTO announcement_history (message, created_by) VALUES ($1, $2)',
+        [message, `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Admin']
+      );
 
-      return json(result[0]);
+      const history = await query('SELECT id, message, created_by, created_at FROM announcement_history ORDER BY created_at DESC LIMIT 10');
+      return json({ ...result[0], history });
     }
 
     if (request.method === 'DELETE') {
       await query('DELETE FROM announcement WHERE id = 1');
-      return json({ success: true, message: null });
+      const history = await query('SELECT id, message, created_by, created_at FROM announcement_history ORDER BY created_at DESC LIMIT 10');
+      return json({ success: true, message: null, history });
     }
 
     return json({ error: 'Method not allowed' }, 405);

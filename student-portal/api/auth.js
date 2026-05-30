@@ -74,7 +74,14 @@ export async function createToken(user) {
 
 export async function verifyToken(request) {
   const auth = request.headers.get('authorization') || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const cookieToken = (request.headers.get('cookie') || '')
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith('student_portal_session='))
+    ?.split('=')
+    .slice(1)
+    .join('=');
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : cookieToken || '';
   const [encodedPayload, signature] = token.split('.');
 
   if (!encodedPayload || !signature) {
@@ -110,4 +117,18 @@ export function json(data, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' }
   });
+}
+
+export function jsonWithHeaders(data, status = 200, headers = {}) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers
+    }
+  });
+}
+
+export function sessionCookie(token) {
+  return `student_portal_session=${token}; Path=/; Max-Age=43200; HttpOnly; SameSite=Lax; Secure`;
 }
