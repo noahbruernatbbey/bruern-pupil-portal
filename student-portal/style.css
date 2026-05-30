@@ -1349,6 +1349,18 @@ body.no-scroll {
     justify-content: flex-end;
     gap: 10px;
     flex-wrap: wrap;
+    max-width: 390px;
+}
+
+.student-actions .btn {
+    width: auto;
+    min-width: 110px;
+    margin-top: 0;
+}
+
+.student-actions .btn-admin-action {
+    min-height: 58px;
+    flex: 1 1 170px;
 }
 
 @media (max-width: 700px) {

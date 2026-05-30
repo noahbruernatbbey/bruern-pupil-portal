@@ -182,7 +182,7 @@
             </div>
 
             <section class="admin-section">
-                <h3>Create Student Account</h3>
+                <h3 id="studentFormTitle">Create Student Account</h3>
                 <form id="studentCreateForm" class="admin-form-grid">
                     <div class="form-group">
                         <label for="studentFirstName">First name</label>
@@ -193,8 +193,8 @@
                         <input id="studentLastName" required>
                     </div>
                     <div class="form-group">
-                        <label for="studentUsername">Username</label>
-                        <input id="studentUsername" maxlength="40">
+                        <label for="studentUsername">Username (optional)</label>
+                        <input id="studentUsername" maxlength="40" placeholder="Leave blank to use their name">
                     </div>
                     <div class="form-group">
                         <label for="studentPassword">Password</label>
@@ -208,7 +208,8 @@
                         <label for="studentClass">Class</label>
                         <select id="studentClass" required></select>
                     </div>
-                    <button class="btn btn-admin btn-large" type="submit">Create account</button>
+                    <button id="studentFormSubmitBtn" class="btn btn-admin btn-large" type="submit">Create account</button>
+                    <button id="cancelStudentEditBtn" class="btn btn-secondary btn-large" type="button" hidden>Cancel edit</button>
                 </form>
             </section>
 

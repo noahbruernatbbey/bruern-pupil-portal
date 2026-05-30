@@ -10,7 +10,9 @@ const sessionKey = 'studentPortalSession';
 const state = {
     token: null,
     user: null,
-    profilePictureData: null
+    profilePictureData: null,
+    students: [],
+    editingStudent: null
 };
 
 const el = id => document.getElementById(id);
@@ -29,6 +31,9 @@ const adminToggleBtn = el('adminToggleBtn');
 const adminPanel = el('adminPanel');
 const closeAdminBtn = el('closeAdminBtn');
 const studentCreateForm = el('studentCreateForm');
+const studentFormTitle = el('studentFormTitle');
+const studentFormSubmitBtn = el('studentFormSubmitBtn');
+const cancelStudentEditBtn = el('cancelStudentEditBtn');
 const studentYear = el('studentYear');
 const studentClass = el('studentClass');
 const studentAccountsList = el('studentAccountsList');
@@ -149,6 +154,37 @@ function populateYearAndClass() {
     studentClass.innerHTML = '<option value="">Select class</option>';
 }
 
+function resetStudentForm() {
+    state.editingStudent = null;
+    studentCreateForm.reset();
+    populateYearAndClass();
+    el('studentPassword').required = true;
+    el('studentPassword').placeholder = '';
+    studentFormTitle.textContent = 'Create Student Account';
+    studentFormSubmitBtn.textContent = 'Create account';
+    cancelStudentEditBtn.hidden = true;
+}
+
+function startStudentEdit(student) {
+    state.editingStudent = student;
+    studentFormTitle.textContent = `Edit ${titleCase(student.first_name)} ${titleCase(student.last_name)}`;
+    studentFormSubmitBtn.textContent = 'Save changes';
+    cancelStudentEditBtn.hidden = false;
+
+    el('studentFirstName').value = titleCase(student.first_name);
+    el('studentLastName').value = titleCase(student.last_name);
+    el('studentUsername').value = student.username || '';
+    el('studentPassword').value = '';
+    el('studentPassword').required = false;
+    el('studentPassword').placeholder = 'Leave blank to keep current password';
+
+    populateYearAndClass();
+    studentYear.value = student.year_group || '';
+    populateClasses(studentYear.value);
+    studentClass.value = student.class_name || '';
+    el('studentFirstName').focus();
+}
+
 function populateClasses(year) {
     studentClass.innerHTML = '<option value="">Select class</option>';
     (YEAR_CLASSES[year] || []).forEach(className => {
@@ -188,6 +224,7 @@ async function refreshStudents() {
             return;
         }
 
+        state.students = students;
         studentAccountsList.innerHTML = students.map(student => {
             const username = student.username || `${student.first_name} ${student.last_name}`;
             return `
@@ -197,6 +234,7 @@ async function refreshStudents() {
                         <div class="student-meta">${username} - ${student.year_group} / ${student.class_name} - ${student.role}</div>
                     </div>
                     <div class="student-actions">
+                        <button class="btn btn-secondary" data-edit="${student.id}" type="button">Edit</button>
                         ${student.role !== 'admin' ? `<button class="btn btn-admin-action" data-promote="${student.id}" type="button">Make Admin</button>` : '<span class="admin-badge">Admin</span>'}
                         <button class="btn btn-close" data-delete="${student.id}" type="button">Delete</button>
                     </div>
@@ -240,7 +278,7 @@ studentYear.addEventListener('change', () => populateClasses(studentYear.value))
 
 adminToggleBtn.addEventListener('click', async () => {
     openPanel(adminPanel);
-    populateYearAndClass();
+    resetStudentForm();
     await refreshStudents();
 });
 
@@ -252,34 +290,51 @@ studentCreateForm.addEventListener('submit', async event => {
     const firstName = titleCase(el('studentFirstName').value);
     const lastName = titleCase(el('studentLastName').value);
     const username = el('studentUsername').value.trim() || `${firstName} ${lastName}`;
+    const editing = state.editingStudent;
+    const password = el('studentPassword').value;
+    const payload = {
+        firstName,
+        lastName,
+        username,
+        password,
+        yearGroup: studentYear.value,
+        className: studentClass.value
+    };
+
+    if (editing) {
+        payload.id = editing.id;
+    }
 
     try {
-        await api('/api/signup', {
-            method: 'POST',
+        await api(editing ? '/api/student' : '/api/signup', {
+            method: editing ? 'PUT' : 'POST',
             headers: authHeaders(),
-            body: JSON.stringify({
-                firstName,
-                lastName,
-                username,
-                password: el('studentPassword').value,
-                yearGroup: studentYear.value,
-                className: studentClass.value
-            })
+            body: JSON.stringify(payload)
         });
-        studentCreateForm.reset();
-        populateYearAndClass();
-        showMessage('Student account created.');
+        showMessage(editing ? 'Student account updated.' : 'Student account created.');
+        resetStudentForm();
         await refreshStudents();
     } catch (error) {
         showMessage(error.message, true);
     }
 });
 
+cancelStudentEditBtn.addEventListener('click', resetStudentForm);
+
 studentAccountsList.addEventListener('click', async event => {
+    const editId = event.target.dataset.edit;
     const promoteId = event.target.dataset.promote;
     const deleteId = event.target.dataset.delete;
 
     try {
+        if (editId) {
+            const student = state.students.find(item => String(item.id) === String(editId));
+            if (student) {
+                startStudentEdit(student);
+            }
+            return;
+        }
+
         if (promoteId) {
             await api('/api/promote', {
                 method: 'POST',
