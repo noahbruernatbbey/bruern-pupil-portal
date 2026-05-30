@@ -36,4 +36,12 @@ export async function ensureTables() {
   await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
   await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_picture TEXT;`);
   await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS username TEXT;`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS announcement (
+      id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      message TEXT NOT NULL,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+  `);
 }

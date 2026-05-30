@@ -12,7 +12,8 @@ const state = {
     user: null,
     profilePictureData: null,
     students: [],
-    editingStudent: null
+    editingStudent: null,
+    announcementTimer: null
 };
 
 const el = id => document.getElementById(id);
@@ -48,6 +49,11 @@ const profileUsername = el('profileUsername');
 const profilePicturePreview = el('profilePicturePreview');
 const profilePictureUpload = el('profilePictureUpload');
 const clearProfilePictureBtn = el('clearProfilePictureBtn');
+const announcementBanner = el('announcementBanner');
+const announcementText = el('announcementText');
+const announcementForm = el('announcementForm');
+const announcementMessage = el('announcementMessage');
+const clearAnnouncementBtn = el('clearAnnouncementBtn');
 
 function titleCase(value) {
     return String(value || '').trim().replace(/\w\S*/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
@@ -141,6 +147,52 @@ function renderPortal() {
 
     loginScreen.classList.remove('active');
     portalScreen.classList.add('active');
+    loadAnnouncement();
+    startAnnouncementPolling();
+}
+
+function renderAnnouncement(announcement) {
+    const message = announcement?.message;
+    if (!message) {
+        announcementBanner.hidden = true;
+        announcementText.textContent = '';
+        if (announcementMessage) {
+            announcementMessage.value = '';
+        }
+        return;
+    }
+
+    announcementText.textContent = message;
+    announcementBanner.hidden = false;
+    if (announcementMessage && state.user?.role === 'admin') {
+        announcementMessage.value = message;
+    }
+}
+
+async function loadAnnouncement() {
+    try {
+        const announcement = await api('/api/announcement');
+        renderAnnouncement(announcement);
+    } catch {
+        announcementBanner.hidden = true;
+    }
+}
+
+function startAnnouncementPolling() {
+    if (state.announcementTimer) {
+        return;
+    }
+
+    state.announcementTimer = window.setInterval(loadAnnouncement, 60000);
+}
+
+function stopAnnouncementPolling() {
+    if (!state.announcementTimer) {
+        return;
+    }
+
+    window.clearInterval(state.announcementTimer);
+    state.announcementTimer = null;
 }
 
 function populateYearAndClass() {
@@ -270,6 +322,7 @@ loginForm.addEventListener('submit', async event => {
 
 logoutBtn.addEventListener('click', () => {
     clearSession();
+    stopAnnouncementPolling();
     portalScreen.classList.remove('active');
     loginScreen.classList.add('active');
 });
@@ -279,11 +332,41 @@ studentYear.addEventListener('change', () => populateClasses(studentYear.value))
 adminToggleBtn.addEventListener('click', async () => {
     openPanel(adminPanel);
     resetStudentForm();
+    await loadAnnouncement();
     await refreshStudents();
 });
 
 closeAdminBtn.addEventListener('click', () => closePanel(adminPanel));
 refreshStudentsBtn.addEventListener('click', refreshStudents);
+
+announcementForm.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    try {
+        const announcement = await api('/api/announcement', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ message: announcementMessage.value })
+        });
+        renderAnnouncement(announcement);
+        showMessage('Announcement posted.');
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+});
+
+clearAnnouncementBtn.addEventListener('click', async () => {
+    try {
+        await api('/api/announcement', {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        renderAnnouncement({ message: null });
+        showMessage('Announcement cleared.');
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+});
 
 studentCreateForm.addEventListener('submit', async event => {
     event.preventDefault();

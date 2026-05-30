@@ -54,6 +54,11 @@
                 </div>
             </section>
 
+            <section id="announcementBanner" class="portal-section announcement-card" hidden>
+                <h3 class="section-title">Announcement</h3>
+                <p id="announcementText" class="announcement-text"></p>
+            </section>
+
             <section class="portal-section">
                 <h3 class="section-title">Home</h3>
                 <p class="section-description">Use the links below to access school apps and resources directly.</p>
@@ -180,6 +185,20 @@
                 <h2>Admin Panel</h2>
                 <button id="closeAdminBtn" class="btn btn-close" type="button">Close</button>
             </div>
+
+            <section class="admin-section">
+                <h3>Announcement</h3>
+                <form id="announcementForm" class="login-form">
+                    <div class="form-group">
+                        <label for="announcementMessage">Message for everyone</label>
+                        <textarea id="announcementMessage" class="admin-textarea" rows="4" maxlength="500" placeholder="Write an announcement for all students"></textarea>
+                    </div>
+                    <div class="admin-button-row">
+                        <button class="btn btn-admin" type="submit">Post announcement</button>
+                        <button id="clearAnnouncementBtn" class="btn btn-secondary" type="button">Clear announcement</button>
+                    </div>
+                </form>
+            </section>
 
             <section class="admin-section">
                 <h3 id="studentFormTitle">Create Student Account</h3>

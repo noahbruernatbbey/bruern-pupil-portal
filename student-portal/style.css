@@ -1334,6 +1334,29 @@ body.no-scroll {
     border-radius: 50%;
 }
 
+.announcement-card {
+    border-color: var(--color-warning);
+    background: #FFF6D8;
+}
+
+.announcement-text {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+}
+
+.admin-button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.admin-button-row .btn {
+    width: auto;
+    flex: 1 1 220px;
+}
+
 .admin-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
