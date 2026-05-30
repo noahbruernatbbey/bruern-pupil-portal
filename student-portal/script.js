@@ -70,6 +70,11 @@ function titleCase(value) {
 }
 
 function showMessage(message, isError = false) {
+    if (!errorMessage) {
+        window.alert(message);
+        return;
+    }
+
     errorMessage.textContent = message;
     errorMessage.classList.add('show');
     errorMessage.style.background = isError ? '#FDEDEC' : '#EAF7EE';
@@ -130,6 +135,10 @@ function clearSession() {
 }
 
 function renderAvatar(target, imageData) {
+    if (!target) {
+        return;
+    }
+
     target.textContent = '';
     if (!imageData) {
         target.textContent = '👤';
@@ -151,7 +160,9 @@ function renderPortal() {
     userDetails.textContent = `${user.year_group || ''} ${user.class_name ? '- ' + user.class_name : ''}`;
     displayUsername.textContent = titleCase(username);
     lockedNameText.textContent = `Account name: ${fullName}`;
-    dashboardClass.textContent = `${user.year_group || 'No year'}${user.class_name ? ' - ' + user.class_name : ''}`;
+    if (dashboardClass) {
+        dashboardClass.textContent = `${user.year_group || 'No year'}${user.class_name ? ' - ' + user.class_name : ''}`;
+    }
     adminToggleBtn.style.display = user.role === 'admin' ? 'inline-block' : 'none';
     profileBtn.style.display = user.id === 'default-admin' ? 'none' : 'inline-block';
     renderAvatar(profileAvatar, user.profile_picture);
@@ -204,9 +215,15 @@ function stopProfilePolling() {
 function renderAnnouncement(announcement) {
     const message = announcement?.message;
     if (!message) {
-        announcementBanner.hidden = true;
-        announcementText.textContent = '';
-        dashboardAnnouncement.textContent = 'No announcement right now.';
+        if (announcementBanner) {
+            announcementBanner.hidden = true;
+        }
+        if (announcementText) {
+            announcementText.textContent = '';
+        }
+        if (dashboardAnnouncement) {
+            dashboardAnnouncement.textContent = 'No announcement right now.';
+        }
         if (announcementMessage) {
             announcementMessage.value = '';
         }
@@ -214,9 +231,15 @@ function renderAnnouncement(announcement) {
         return;
     }
 
-    announcementText.textContent = message;
-    dashboardAnnouncement.textContent = message;
-    announcementBanner.hidden = false;
+    if (announcementText) {
+        announcementText.textContent = message;
+    }
+    if (dashboardAnnouncement) {
+        dashboardAnnouncement.textContent = message;
+    }
+    if (announcementBanner) {
+        announcementBanner.hidden = false;
+    }
     if (announcementMessage && state.user?.role === 'admin') {
         announcementMessage.value = message;
     }
@@ -246,7 +269,9 @@ async function loadAnnouncement() {
         const announcement = await api('/api/announcement');
         renderAnnouncement(announcement);
     } catch {
-        announcementBanner.hidden = true;
+        if (announcementBanner) {
+            announcementBanner.hidden = true;
+        }
     }
 }
 
@@ -423,9 +448,11 @@ loginForm.addEventListener('submit', async event => {
     }
 });
 
-showPasswordToggle.addEventListener('change', () => {
-    el('password').type = showPasswordToggle.checked ? 'text' : 'password';
-});
+if (showPasswordToggle) {
+    showPasswordToggle.addEventListener('change', () => {
+        el('password').type = showPasswordToggle.checked ? 'text' : 'password';
+    });
+}
 
 logoutBtn.addEventListener('click', () => {
     clearSession();
@@ -447,34 +474,38 @@ adminToggleBtn.addEventListener('click', async () => {
 closeAdminBtn.addEventListener('click', () => closePanel(adminPanel));
 refreshStudentsBtn.addEventListener('click', refreshStudents);
 
-announcementForm.addEventListener('submit', async event => {
-    event.preventDefault();
+if (announcementForm) {
+    announcementForm.addEventListener('submit', async event => {
+        event.preventDefault();
 
-    try {
-        const announcement = await api('/api/announcement', {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({ message: announcementMessage.value })
-        });
-        renderAnnouncement(announcement);
-        showMessage('Announcement posted.');
-    } catch (error) {
-        showMessage(error.message, true);
-    }
-});
+        try {
+            const announcement = await api('/api/announcement', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ message: announcementMessage.value })
+            });
+            renderAnnouncement(announcement);
+            showMessage('Announcement posted.');
+        } catch (error) {
+            showMessage(error.message, true);
+        }
+    });
+}
 
-clearAnnouncementBtn.addEventListener('click', async () => {
-    try {
-        const announcement = await api('/api/announcement', {
-            method: 'DELETE',
-            headers: authHeaders()
-        });
-        renderAnnouncement(announcement);
-        showMessage('Announcement cleared.');
-    } catch (error) {
-        showMessage(error.message, true);
-    }
-});
+if (clearAnnouncementBtn) {
+    clearAnnouncementBtn.addEventListener('click', async () => {
+        try {
+            const announcement = await api('/api/announcement', {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+            renderAnnouncement(announcement);
+            showMessage('Announcement cleared.');
+        } catch (error) {
+            showMessage(error.message, true);
+        }
+    });
+}
 
 studentCreateForm.addEventListener('submit', async event => {
     event.preventDefault();
