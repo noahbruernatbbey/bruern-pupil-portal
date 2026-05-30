@@ -13,7 +13,8 @@ const state = {
     profilePictureData: null,
     students: [],
     editingStudent: null,
-    announcementTimer: null
+    announcementTimer: null,
+    profileTimer: null
 };
 
 const el = id => document.getElementById(id);
@@ -149,6 +150,45 @@ function renderPortal() {
     portalScreen.classList.add('active');
     loadAnnouncement();
     startAnnouncementPolling();
+    startProfilePolling();
+}
+
+async function refreshCurrentUser(showErrors = false) {
+    if (!state.token || !state.user) {
+        return;
+    }
+
+    try {
+        const latestUser = await api('/api/profile', {
+            headers: authHeaders()
+        });
+
+        state.user = latestUser;
+        state.profilePictureData = latestUser.profile_picture || null;
+        saveSession();
+        renderPortal();
+    } catch (error) {
+        if (showErrors) {
+            showMessage(error.message, true);
+        }
+    }
+}
+
+function startProfilePolling() {
+    if (state.profileTimer) {
+        return;
+    }
+
+    state.profileTimer = window.setInterval(refreshCurrentUser, 15000);
+}
+
+function stopProfilePolling() {
+    if (!state.profileTimer) {
+        return;
+    }
+
+    window.clearInterval(state.profileTimer);
+    state.profileTimer = null;
 }
 
 function renderAnnouncement(announcement) {
@@ -323,6 +363,7 @@ loginForm.addEventListener('submit', async event => {
 logoutBtn.addEventListener('click', () => {
     clearSession();
     stopAnnouncementPolling();
+    stopProfilePolling();
     portalScreen.classList.remove('active');
     loginScreen.classList.add('active');
 });
@@ -395,6 +436,9 @@ studentCreateForm.addEventListener('submit', async event => {
             body: JSON.stringify(payload)
         });
         showMessage(editing ? 'Student account updated.' : 'Student account created.');
+        if (editing && String(state.user?.id) === String(editing.id)) {
+            await refreshCurrentUser();
+        }
         resetStudentForm();
         await refreshStudents();
     } catch (error) {

@@ -7,13 +7,41 @@ export const config = {
 
 export default async function handler(request) {
   try {
-    if (request.method !== 'PUT') {
-      return json({ error: 'Method not allowed' }, 405);
-    }
-
     const user = await verifyToken(request);
     if (!user) {
       return json({ error: 'Login required' }, 401);
+    }
+
+    if (request.method === 'GET') {
+      if (String(user.id) === 'default-admin') {
+        return json({
+          id: 'default-admin',
+          first_name: 'Noah',
+          last_name: 'Hill',
+          username: 'Noah Hill',
+          year_group: 'Admin',
+          class_name: 'Admin',
+          role: 'admin',
+          profile_picture: null
+        });
+      }
+
+      await ensureTables();
+
+      const result = await query(
+        'SELECT id, first_name, last_name, username, year_group, class_name, role, profile_picture FROM students WHERE id = $1 LIMIT 1',
+        [user.id]
+      );
+
+      if (result.length === 0) {
+        return json({ error: 'Student not found' }, 404);
+      }
+
+      return json(result[0]);
+    }
+
+    if (request.method !== 'PUT') {
+      return json({ error: 'Method not allowed' }, 405);
     }
 
     const body = await request.json();
