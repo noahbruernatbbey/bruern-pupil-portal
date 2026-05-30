@@ -1,4 +1,5 @@
 import { ensureTables, query } from './db.js';
+import { hashPassword, json, requireAdmin } from './auth.js';
 
 export const config = {
   runtime: 'edge'
@@ -7,14 +8,19 @@ export const config = {
 export default async function handler(request) {
   try {
     if (request.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+      return json({ error: 'Method not allowed' }, 405);
+    }
+
+    const admin = await requireAdmin(request);
+    if (!admin) {
+      return json({ error: 'Admin access required' }, 403);
     }
 
     const body = await request.json();
-    const { firstName, lastName, password, yearGroup, className, profilePicture } = body;
+    const { firstName, lastName, password, username, yearGroup, className, profilePicture } = body;
 
     if (!firstName || !lastName || !password || !yearGroup || !className) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
+      return json({ error: 'Missing required fields' }, 400);
     }
 
     await ensureTables();
@@ -25,16 +31,17 @@ export default async function handler(request) {
     );
 
     if (existing.length > 0) {
-      return new Response(JSON.stringify({ error: 'Account already exists' }), { status: 409 });
+      return json({ error: 'Account already exists' }, 409);
     }
 
+    const passwordHash = await hashPassword(password);
     const result = await query(
-      'INSERT INTO students (first_name, last_name, password, year_group, class_name, role, profile_picture) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, first_name, last_name, year_group, class_name, role, profile_picture',
-      [firstName, lastName, password, yearGroup, className, 'student', profilePicture || null]
+      'INSERT INTO students (first_name, last_name, password, username, year_group, class_name, role, profile_picture) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, first_name, last_name, username, year_group, class_name, role, profile_picture',
+      [firstName, lastName, passwordHash, username || `${firstName} ${lastName}`, yearGroup, className, 'student', profilePicture || null]
     );
 
-    return new Response(JSON.stringify(result[0]), { status: 201 });
+    return json(result[0], 201);
   } catch (error) {
-    return new Response(JSON.stringify({ error: error?.message || 'Server error' }), { status: 500 });
+    return json({ error: error?.message || 'Server error' }, 500);
   }
 }

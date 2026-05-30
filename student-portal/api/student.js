@@ -1,4 +1,5 @@
 import { ensureTables, query } from './db.js';
+import { hashPassword, json, requireAdmin } from './auth.js';
 
 export const config = {
   runtime: 'edge'
@@ -9,53 +10,63 @@ export default async function handler(request) {
     await ensureTables();
 
     if (request.method === 'PUT') {
+      const admin = await requireAdmin(request);
+      if (!admin) {
+        return json({ error: 'Admin access required' }, 403);
+      }
+
       const body = await request.json();
-      const { id, firstName, lastName, password, yearGroup, className, profilePicture } = body;
+      const { id, firstName, lastName, password, username, yearGroup, className, profilePicture } = body;
 
       if (!id || !firstName || !lastName || !yearGroup || !className) {
-        return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
+        return json({ error: 'Missing required fields' }, 400);
       }
 
       const existingResult = await query('SELECT password, profile_picture FROM students WHERE id = $1', [id]);
       if (existingResult.length === 0) {
-        return new Response(JSON.stringify({ error: 'Student not found' }), { status: 404 });
+        return json({ error: 'Student not found' }, 404);
       }
 
       const existingStudent = existingResult[0];
-      const updatedPassword = password && password.trim() !== '' ? password : existingStudent.password || '';
+      const updatedPassword = password && password.trim() !== '' ? await hashPassword(password) : existingStudent.password || '';
       const updatedProfilePicture = profilePicture !== undefined && profilePicture !== null ? profilePicture : existingStudent.profile_picture || null;
 
       const result = await query(
-        'UPDATE students SET first_name = $1, last_name = $2, password = $3, year_group = $4, class_name = $5, profile_picture = $6 WHERE id = $7 RETURNING id, first_name, last_name, year_group, class_name, role, profile_picture',
-        [firstName, lastName, updatedPassword, yearGroup, className, updatedProfilePicture, id]
+        'UPDATE students SET first_name = $1, last_name = $2, password = $3, username = $4, year_group = $5, class_name = $6, profile_picture = $7 WHERE id = $8 RETURNING id, first_name, last_name, username, year_group, class_name, role, profile_picture',
+        [firstName, lastName, updatedPassword, username || `${firstName} ${lastName}`, yearGroup, className, updatedProfilePicture, id]
       );
 
       if (result.length === 0) {
-        return new Response(JSON.stringify({ error: 'Student not found' }), { status: 404 });
+        return json({ error: 'Student not found' }, 404);
       }
 
-      return new Response(JSON.stringify(result[0]), { status: 200 });
+      return json(result[0]);
     }
 
     if (request.method === 'DELETE') {
+      const admin = await requireAdmin(request);
+      if (!admin) {
+        return json({ error: 'Admin access required' }, 403);
+      }
+
       const body = await request.json();
       const { id } = body;
 
       if (!id) {
-        return new Response(JSON.stringify({ error: 'Missing student id' }), { status: 400 });
+        return json({ error: 'Missing student id' }, 400);
       }
 
       const result = await query('DELETE FROM students WHERE id = $1 RETURNING id', [id]);
 
       if (result.length === 0) {
-        return new Response(JSON.stringify({ error: 'Student not found' }), { status: 404 });
+        return json({ error: 'Student not found' }, 404);
       }
 
-      return new Response(JSON.stringify({ success: true }), { status: 200 });
+      return json({ success: true });
     }
 
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    return json({ error: 'Method not allowed' }, 405);
   } catch (error) {
-    return new Response(JSON.stringify({ error: error?.message || 'Server error' }), { status: 500 });
+    return json({ error: error?.message || 'Server error' }, 500);
   }
 }

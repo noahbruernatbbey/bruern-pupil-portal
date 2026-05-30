@@ -1,4 +1,5 @@
 import { ensureTables, query } from './db.js';
+import { json, requireAdmin } from './auth.js';
 
 export const config = {
   runtime: 'edge'
@@ -7,29 +8,34 @@ export const config = {
 export default async function handler(request) {
   try {
     if (request.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+      return json({ error: 'Method not allowed' }, 405);
+    }
+
+    const admin = await requireAdmin(request);
+    if (!admin) {
+      return json({ error: 'Admin access required' }, 403);
     }
 
     const body = await request.json();
     const { id } = body;
 
     if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing student id' }), { status: 400 });
+      return json({ error: 'Missing student id' }, 400);
     }
 
     await ensureTables();
 
     const result = await query(
-      'UPDATE students SET role = $1 WHERE id = $2 RETURNING id, first_name, last_name, year_group, class_name, role, profile_picture',
+      'UPDATE students SET role = $1 WHERE id = $2 RETURNING id, first_name, last_name, username, year_group, class_name, role, profile_picture',
       ['admin', id]
     );
 
     if (result.length === 0) {
-      return new Response(JSON.stringify({ error: 'Student not found' }), { status: 404 });
+      return json({ error: 'Student not found' }, 404);
     }
 
-    return new Response(JSON.stringify(result[0]), { status: 200 });
+    return json(result[0]);
   } catch (error) {
-    return new Response(JSON.stringify({ error: error?.message || 'Server error' }), { status: 500 });
+    return json({ error: error?.message || 'Server error' }, 500);
   }
 }

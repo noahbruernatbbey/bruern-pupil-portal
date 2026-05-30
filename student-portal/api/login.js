@@ -1,4 +1,5 @@
 import { ensureTables, query } from './db.js';
+import { createToken, isDefaultAdmin, json, passwordMatches } from './auth.js';
 
 export const config = {
   runtime: 'edge'
@@ -14,22 +15,37 @@ export default async function handler(request) {
     const { firstName, lastName, password } = body;
 
     if (!firstName || !lastName || !password) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
+      return json({ error: 'Missing required fields' }, 400);
+    }
+
+    if (isDefaultAdmin(firstName, lastName, password)) {
+      const user = {
+        id: 'default-admin',
+        first_name: 'Noah',
+        last_name: 'Hill',
+        username: 'Noah Hill',
+        year_group: 'Admin',
+        class_name: 'Admin',
+        role: 'admin',
+        profile_picture: null
+      };
+      return json({ user, token: await createToken(user) });
     }
 
     await ensureTables();
 
     const result = await query(
-      'SELECT id, first_name, last_name, year_group, class_name, role, profile_picture FROM students WHERE LOWER(first_name) = LOWER($1) AND LOWER(last_name) = LOWER($2) AND password = $3 LIMIT 1',
-      [firstName, lastName, password]
+      'SELECT id, first_name, last_name, username, year_group, class_name, role, profile_picture, password FROM students WHERE LOWER(first_name) = LOWER($1) AND LOWER(last_name) = LOWER($2) LIMIT 1',
+      [firstName, lastName]
     );
 
-    if (result.length === 0) {
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401 });
+    if (result.length === 0 || !(await passwordMatches(result[0].password, password))) {
+      return json({ error: 'Invalid credentials' }, 401);
     }
 
-    return new Response(JSON.stringify(result[0]), { status: 200 });
+    const { password: _password, ...user } = result[0];
+    return json({ user, token: await createToken(user) });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error?.message || 'Server error' }), { status: 500 });
+    return json({ error: error?.message || 'Server error' }, 500);
   }
 }

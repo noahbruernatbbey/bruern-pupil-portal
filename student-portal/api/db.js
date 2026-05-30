@@ -24,6 +24,7 @@ export async function ensureTables() {
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
       password TEXT NOT NULL,
+      username TEXT,
       year_group TEXT NOT NULL,
       class_name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'student',
@@ -34,4 +35,5 @@ export async function ensureTables() {
 
   await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
   await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_picture TEXT;`);
+  await db.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS username TEXT;`);
 }

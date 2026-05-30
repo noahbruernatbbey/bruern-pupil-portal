@@ -7,21 +7,57 @@
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <div id="portalScreen" class="screen active">
+    <section id="loginScreen" class="screen active">
+        <div class="login-container">
+            <h1 class="portal-title">Student Portal</h1>
+            <p class="welcome-text">Bruern Abbey School</p>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="firstName">First name</label>
+                    <input id="firstName" name="firstName" autocomplete="given-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last name</label>
+                    <input id="lastName" name="lastName" autocomplete="family-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required>
+                </div>
+                <p id="errorMessage" class="error-message" aria-live="polite"></p>
+                <button class="btn btn-primary btn-large" type="submit">Log in</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="portalScreen" class="screen">
         <header class="portal-header">
             <div class="header-content">
                 <div class="user-info">
-                    <h1 class="portal-title">🎓 Student Portal</h1>
-                    <p class="welcome-text">Welcome to Bruern Abbey School</p>
+                    <h1 id="welcomeMessage" class="portal-title">Student Portal</h1>
+                    <p id="userDetails" class="welcome-text"></p>
+                </div>
+                <div class="header-actions">
+                    <button id="profileBtn" class="btn btn-secondary" type="button">Profile</button>
+                    <button id="adminToggleBtn" class="btn btn-admin" type="button">Admin Panel</button>
+                    <button id="logoutBtn" class="btn btn-close" type="button">Log out</button>
                 </div>
             </div>
         </header>
 
         <main class="portal-main">
+            <section class="portal-section profile-strip">
+                <div id="profileAvatar" class="profile-picture-preview">👤</div>
+                <div>
+                    <h2 id="displayUsername" class="section-title">Welcome</h2>
+                    <p id="lockedNameText" class="section-description"></p>
+                </div>
+            </section>
+
             <section class="portal-section">
-                <h3 class="section-title">📌 Home</h3>
-                <p class="section-description">Use the links below to access the school apps and resources directly.</p>
-                <div id="quickActions" class="quick-actions">
+                <h3 class="section-title">Home</h3>
+                <p class="section-description">Use the links below to access school apps and resources directly.</p>
+                <div class="quick-actions">
                     <a href="https://bruern-pupil-site.vercel.app/academic?mode=all&day=all" target="_blank" rel="noopener noreferrer" class="link-card">
                         <span class="link-icon">📚</span>
                         <div class="link-details">
@@ -61,7 +97,7 @@
             </section>
 
             <section class="portal-section">
-                <h3 class="section-title">🎮 Learning Apps & Tools</h3>
+                <h3 class="section-title">Learning Apps & Tools</h3>
                 <div class="apps-grid">
                     <a href="https://login.renaissance.com/13d332eb-2da7-45a6-a9e8-6f399a4bbe03?state=16a0f363-820c-47c5-8f6d-6f3af5e8c423" target="_blank" rel="noopener noreferrer" class="app-tile">
                         <span class="app-icon">📖</span>
@@ -99,9 +135,93 @@
                         <span class="app-icon">💻</span>
                         <span class="app-name">Scratch Coding</span>
                     </a>
+                    <a href="https://forms.gle/dKc6SNBZ8KwJpv7p6" target="_blank" rel="noopener noreferrer" class="app-tile app-tile-report">
+                        <span class="app-icon">🛠️</span>
+                        <span class="app-name">IT Help</span>
+                    </a>
                 </div>
             </section>
         </main>
-    </div>
+    </section>
+
+    <section id="profilePanel" class="admin-overlay" aria-modal="true">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2>Your Profile</h2>
+                <button id="closeProfileBtn" class="btn btn-close" type="button">Close</button>
+            </div>
+            <form id="profileForm" class="login-form">
+                <div class="form-group">
+                    <label for="profileFirstName">First name</label>
+                    <input id="profileFirstName" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="profileLastName">Last name</label>
+                    <input id="profileLastName" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="profileUsername">Username</label>
+                    <input id="profileUsername" maxlength="40" required>
+                </div>
+                <div class="settings-section">
+                    <h3>Profile picture</h3>
+                    <div id="profilePicturePreview" class="profile-picture-preview">👤</div>
+                    <input id="profilePictureUpload" class="form-input" type="file" accept="image/*">
+                    <button id="clearProfilePictureBtn" class="btn btn-secondary" type="button">Remove picture</button>
+                </div>
+                <button class="btn btn-primary btn-large" type="submit">Save profile</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="adminPanel" class="admin-overlay" aria-modal="true">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2>Admin Panel</h2>
+                <button id="closeAdminBtn" class="btn btn-close" type="button">Close</button>
+            </div>
+
+            <section class="admin-section">
+                <h3>Create Student Account</h3>
+                <form id="studentCreateForm" class="admin-form-grid">
+                    <div class="form-group">
+                        <label for="studentFirstName">First name</label>
+                        <input id="studentFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentLastName">Last name</label>
+                        <input id="studentLastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentUsername">Username</label>
+                        <input id="studentUsername" maxlength="40">
+                    </div>
+                    <div class="form-group">
+                        <label for="studentPassword">Password</label>
+                        <input id="studentPassword" type="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentYear">Year group</label>
+                        <select id="studentYear" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentClass">Class</label>
+                        <select id="studentClass" required></select>
+                    </div>
+                    <button class="btn btn-admin btn-large" type="submit">Create account</button>
+                </form>
+            </section>
+
+            <section class="admin-section">
+                <div class="quick-links-menu-header">
+                    <h3>Student Accounts</h3>
+                    <button id="refreshStudentsBtn" class="btn btn-secondary" type="button">Refresh</button>
+                </div>
+                <div id="studentAccountsList" class="student-accounts-table"></div>
+            </section>
+        </div>
+    </section>
+
+    <script src="./script.js" defer></script>
 </body>
 </html>
