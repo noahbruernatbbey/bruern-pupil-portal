@@ -35,14 +35,6 @@ A highly accessible, dyslexia-friendly student portal with secure login and admi
 - **Reduced Motion Support**: Respects user preferences for reduced motion
 - **Responsive Design**: Optimized for tablets, iPads, and desktop monitors
 
-## 🔑 Login Credentials
-
-**Admin Account:**
-- First Name: `noah`
-- Last Name: `hill`
-- Password: `Bruern801`
-
-*(Names are case-insensitive, password is case-sensitive)*
 
 ## 🚀 Deployment to Vercel
 
