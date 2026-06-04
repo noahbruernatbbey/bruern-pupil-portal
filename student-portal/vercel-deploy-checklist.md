@@ -22,15 +22,15 @@ Vercel Deployment Checklist for student-portal
   - Ensure any large assets are stored in a CDN if they will be hot-linked.
 
 - Security & CORS
-  - Ensure API routes validate and sanitize inputs (password handling, etc.).
+  - Ensure API routes validate and sanitize inputs.
   - Do not commit production secrets to the repo. Use Vercel env variables.
 
 - Build & Preview
   - Use `vercel dev` to run a local preview that matches Vercel's runtime.
-  - Confirm `/api/signup`, `/api/login`, `/api/students`, and `/api/promote` work locally.
+  - Confirm `/api/signup`, `/api/students`, and `/api/promote` work locally.
 
 - Deploy & Verify
-  - Deploy to a staging branch first, test sign up/login flows across machines.
+  - Deploy to a staging branch first, test portal and admin flows across machines.
   - Verify profile pictures persist, admin promotion persists, and sessions behave across devices.
 
 - Post-deploy

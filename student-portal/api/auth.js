@@ -1,9 +1,3 @@
-const ADMIN_ACCOUNT = {
-  firstName: 'noah',
-  lastName: 'hill',
-  password: 'Bruern801'
-};
-
 const encoder = new TextEncoder();
 
 function getSecret() {
@@ -36,14 +30,6 @@ async function sign(data) {
   return base64UrlEncode(new Uint8Array(signature));
 }
 
-export function isDefaultAdmin(firstName, lastName, password) {
-  return (
-    String(firstName || '').trim().toLowerCase() === ADMIN_ACCOUNT.firstName &&
-    String(lastName || '').trim().toLowerCase() === ADMIN_ACCOUNT.lastName &&
-    password === ADMIN_ACCOUNT.password
-  );
-}
-
 export async function hashPassword(password) {
   const bytes = await crypto.subtle.digest('SHA-256', encoder.encode(`${getSecret()}:${password}`));
   return `sha256:${base64UrlEncode(new Uint8Array(bytes))}`;
@@ -61,7 +47,7 @@ export async function passwordMatches(storedPassword, suppliedPassword) {
 
 export async function createToken(user) {
   const payload = {
-    id: user.id || 'default-admin',
+    id: user.id || 'school-portal',
     role: user.role || 'student',
     firstName: user.first_name || user.firstName,
     lastName: user.last_name || user.lastName,

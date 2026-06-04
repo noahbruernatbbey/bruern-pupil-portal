@@ -13,14 +13,14 @@ export default async function handler(request) {
     }
 
     if (request.method === 'GET') {
-      if (String(user.id) === 'default-admin') {
+      if (String(user.id) === 'school-portal') {
         return json({
-          id: 'default-admin',
-          first_name: 'Noah',
-          last_name: 'Hill',
-          username: 'Noah Hill',
-          year_group: 'Admin',
-          class_name: 'Admin',
+          id: 'school-portal',
+          first_name: 'Bruern',
+          last_name: 'Abbey',
+          username: 'Bruern Abbey School',
+          year_group: 'School',
+          class_name: 'Portal',
           role: 'admin',
           profile_picture: null
         });

@@ -1,5 +1,5 @@
 import { ensureTables, query } from './db.js';
-import { hashPassword, json, requireAdmin } from './auth.js';
+import { json, requireAdmin } from './auth.js';
 
 export const config = {
   runtime: 'edge'
@@ -16,24 +16,23 @@ export default async function handler(request) {
       }
 
       const body = await request.json();
-      const { id, firstName, lastName, password, username, yearGroup, className, profilePicture } = body;
+      const { id, firstName, lastName, username, yearGroup, className, profilePicture } = body;
 
       if (!id || !firstName || !lastName || !yearGroup || !className) {
         return json({ error: 'Missing required fields' }, 400);
       }
 
-      const existingResult = await query('SELECT password, profile_picture FROM students WHERE id = $1', [id]);
+      const existingResult = await query('SELECT profile_picture FROM students WHERE id = $1', [id]);
       if (existingResult.length === 0) {
         return json({ error: 'Student not found' }, 404);
       }
 
       const existingStudent = existingResult[0];
-      const updatedPassword = password && password.trim() !== '' ? await hashPassword(password) : existingStudent.password || '';
       const updatedProfilePicture = profilePicture !== undefined && profilePicture !== null ? profilePicture : existingStudent.profile_picture || null;
 
       const result = await query(
-        'UPDATE students SET first_name = $1, last_name = $2, password = $3, username = $4, year_group = $5, class_name = $6, profile_picture = $7 WHERE id = $8 RETURNING id, first_name, last_name, username, year_group, class_name, role, profile_picture',
-        [firstName, lastName, updatedPassword, username || `${firstName} ${lastName}`, yearGroup, className, updatedProfilePicture, id]
+        'UPDATE students SET first_name = $1, last_name = $2, username = $3, year_group = $4, class_name = $5, profile_picture = $6 WHERE id = $7 RETURNING id, first_name, last_name, username, year_group, class_name, role, profile_picture',
+        [firstName, lastName, username || `${firstName} ${lastName}`, yearGroup, className, updatedProfilePicture, id]
       );
 
       if (result.length === 0) {
